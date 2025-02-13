@@ -1,0 +1,61 @@
+server:
+  port: 8081
+spring:
+  datasource:
+    url: jdbc:postgresql://customer-db:5432/db_customer
+    username: userbanksystem
+    password: sql
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      bootstrap-servers: kafka:9092
+      group-id: customer-group-id       # Nombre del grupo de consumidores
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      topic:
+        customer-create: customer-create-topic
+    producer:
+      bootstrap-servers: kafka:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      topic:
+        user-update: user-update-topic
+        account-create: account-create-topic
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # Configura el tamaño máximo del archivo individual
+      max-request-size: 20MB  # Configura el tamaño máximo de la solicitud completa
+  cloud:
+    discovery:
+      enabled: true # Habilita la funcionalidad de descubrimiento
+eureka:
+  client:
+    service-url:
+      defaultZone: http://registry:8761/eureka/ # Dirección del servidor Eureka
+    register-with-eureka: true # Permite registrarse en Eureka
+    fetch-registry: true # Obtiene el registro de servicios de Eureka
+  instance:
+    prefer-ip-address: true # Utiliza la IP en lugar del hostname        
+
+security:
+  jwt:
+    time: 1000
+    secret: 33743677397A24432646294A404D635166546A576E5A7234753778214125442A
+  get:
+    token:
+      uri: /authenticate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true
