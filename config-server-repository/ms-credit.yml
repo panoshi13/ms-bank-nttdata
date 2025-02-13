@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: ms-credit
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/bank
+server:
+  port: 8082
+api:
+  client:
+    url: http://localhost:8085

@@ -4,11 +4,11 @@ import com.ntt.data.ms.credit.client.ClientDTO;
 import com.ntt.data.ms.credit.config.CustomException;
 import com.ntt.data.ms.credit.dto.PaymentDTO;
 import com.ntt.data.ms.credit.entity.Credit;
-import com.ntt.data.ms.credit.entity.CreditCard;
 import com.ntt.data.ms.credit.entity.CreditType;
 import com.ntt.data.ms.credit.entity.Payment;
 import com.ntt.data.ms.credit.repository.CreditRepository;
 import com.ntt.data.ms.credit.service.CreditService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -29,9 +29,11 @@ public class CreditServiceImpl implements CreditService {
     private final CreditRepository creditRepository;
     private final WebClient webClient;
 
-    public CreditServiceImpl(CreditRepository creditRepository, WebClient.Builder webClientBuilder) {
+    public CreditServiceImpl(CreditRepository creditRepository,
+                             WebClient.Builder webClientBuilder,
+                             @Value("${api.client.url}") String bankAccountUrl) {
         this.creditRepository = creditRepository;
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8085").build();
+        this.webClient = webClientBuilder.baseUrl(bankAccountUrl).build();
     }
 
     @Override
