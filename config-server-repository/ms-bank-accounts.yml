@@ -1,20 +1,12 @@
 spring:
   application:
     name: ms-bank-accounts
-
 server:
   port: 8080
-
 spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/bank
-
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger
 api:
   client:
     url: http://localhost:8085

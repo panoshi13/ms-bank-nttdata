@@ -3,6 +3,8 @@ package com.ntt.data.ms.credit.serviceImpl;
 import com.ntt.data.ms.credit.client.ClientDTO;
 import com.ntt.data.ms.credit.config.CustomException;
 import com.ntt.data.ms.credit.dto.PaymentDTO;
+import com.ntt.data.ms.credit.dto.SpendDTO;
+import com.ntt.data.ms.credit.entity.Charge;
 import com.ntt.data.ms.credit.entity.Credit;
 import com.ntt.data.ms.credit.entity.CreditType;
 import com.ntt.data.ms.credit.entity.Payment;
@@ -52,13 +54,13 @@ public class CreditServiceImpl implements CreditService {
                         return Mono.error(new CustomException("El tipo de crédito no coincide con el tipo de cliente"));
                     }
 
-                    credit.setBalance(0.00);
+                    credit.setBalance(credit.getBalance());
                     credit.setStatus(true);
 
                     if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
                         // Setear la tasa de interés
                         credit.setInterestRate();
-                        var quota = calculateQuotaMonth(credit.getAmount(), credit.getInterestRate(), credit.getTermMonths());
+                        var quota = calculateQuotaMonth(credit.getBalance(), credit.getInterestRate(), credit.getTermMonths());
                         credit.setBalanceWithInterestRate(aroundTwoDecimal(quota * credit.getTermMonths()));
                         credit.setMonthlyFee(quota);
                     }
@@ -75,8 +77,7 @@ public class CreditServiceImpl implements CreditService {
                     }
 
                     if (credit.getType().equals(CreditType.CREDIT_CARD)) {
-                        credit.setCreditLimit(credit.getAmount());
-                        credit.setAmount(null);
+                        credit.setCreditLimit(credit.getBalance());
                         credit.setAvailableBalance(credit.getCreditLimit());
                     }
 
@@ -87,11 +88,11 @@ public class CreditServiceImpl implements CreditService {
 
     @Override
     public Mono<Credit> paymentCredit(PaymentDTO paymentDTO) {
-        return creditRepository.findById(paymentDTO.getId())
+        return creditRepository.findById(paymentDTO.getIdCard())
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
                 .flatMap(credit -> {
                     if (!credit.getStatus())
-                        return Mono.error(new CustomException("El credito esta desactivado"));
+                        return Mono.error(new CustomException("El credito esta vacio o desactivado"));
 
                     if (paymentDTO.getAmount() <= 0) {
                         return Mono.error(new CustomException("El monto debe ser mayor a 0"));
@@ -103,6 +104,10 @@ public class CreditServiceImpl implements CreditService {
                         payments = new ArrayList<>();
                     }
 
+                    var paymentsMissing = payments.stream()
+                            .mapToDouble(Payment::getAmount)
+                            .sum();
+
                     Payment payment = new Payment();
                     payment.setAmount(paymentDTO.getAmount());
                     payment.setDate(LocalDateTime.now());
@@ -112,20 +117,79 @@ public class CreditServiceImpl implements CreditService {
                             .sorted(Comparator.comparing(Payment::getDate).reversed())
                             .collect(Collectors.toList());
 
-                    var paymentsMissing = payments.stream()
+                    var paymentsMissingWithAmount = payments.stream()
                             .mapToDouble(Payment::getAmount)
                             .sum();
 
-                    if (paymentsMissing > credit.getBalanceWithInterestRate()) {
-                        var needPay = credit.getBalanceWithInterestRate() - credit.getBalance();
-                        return Mono.error(new CustomException("Usted solo necesita pagar: " + needPay));
+
+                    if (credit.getType() == CreditType.CREDIT_CARD) {
+                        var needPay = paymentsMissing - credit.getCreditLimit();
+                        if (paymentsMissingWithAmount > credit.getCreditLimit()) {
+                            return Mono.error(new CustomException("Usted solo necesita pagar: " + aroundTwoDecimal(needPay)));
+                        }
+
+                        credit.setAvailableBalance(aroundTwoDecimal(credit.getAvailableBalance() + paymentDTO.getAmount()));
+
+                        if (Objects.equals(0.00, credit.getAvailableBalance())) {
+                            credit.setStatus(false);
+                        }
+                    } else {
+                        if (paymentsMissingWithAmount > credit.getBalanceWithInterestRate()) {
+                            var needPay = credit.getBalanceWithInterestRate() - credit.getBalance();
+                            return Mono.error(new CustomException("Usted solo necesita pagar: " + aroundTwoDecimal(needPay)));
+                        }
+                        credit.setBalance(aroundTwoDecimal(paymentsMissingWithAmount));
+                        if (Objects.equals(credit.getBalance(), credit.getBalanceWithInterestRate())) {
+                            credit.setStatus(false);
+                        }
                     }
 
-                    credit.setBalance(aroundTwoDecimal(paymentsMissing));
-                    if (Objects.equals(credit.getBalance(), credit.getBalanceWithInterestRate())) {
-                        credit.setStatus(false);
-                    }
                     credit.setPayments(payments);
+                    return creditRepository.save(credit);
+                });
+    }
+
+    @Override
+    public Mono<Credit> spendCredit(SpendDTO spendDTO) {
+        return creditRepository.findById(spendDTO.getIdCard())
+                .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
+                .flatMap(credit -> {
+                    if (!credit.getStatus())
+                        return Mono.error(new CustomException("El credito esta vacio o desactivado"));
+
+                    if (credit.getAvailableBalance() == 0.00)
+                        return Mono.error(new CustomException("Ya no tiene saldo disponible"));
+
+                    var sumaGastos = spendDTO.getCharges().stream().mapToDouble(Charge::getAmount).sum();
+                    if (sumaGastos <= 0) {
+                        return Mono.error(new CustomException("El monto debe ser mayor a 0"));
+                    }
+
+                    if (sumaGastos > credit.getAvailableBalance()) {
+                        return Mono.error(new CustomException("Solo le queda disponible: "+credit.getAvailableBalance()));
+                    }
+
+                    credit.setAvailableBalance(aroundTwoDecimal(credit.getAvailableBalance() - sumaGastos));
+
+
+                    List<Charge> charges = credit.getCharges();
+
+                    if (charges == null) {
+                        charges = new ArrayList<>();
+                    }
+
+                    spendDTO.getCharges().forEach(charge -> {
+                        charge.setDate(LocalDateTime.now());
+                    });
+
+                    charges.addAll(spendDTO.getCharges());
+
+                    charges  = charges.stream()
+                            .sorted(Comparator.comparing(Charge::getDate).reversed())
+                            .collect(Collectors.toList());
+
+                    credit.setCharges(charges);
+
                     return creditRepository.save(credit);
                 });
     }
@@ -136,9 +200,9 @@ public class CreditServiceImpl implements CreditService {
         return creditRepository.save(credit);
     }
 
-    public static double calculateQuotaMonth(double amount, double interestRateYear, int months) {
+    public static double calculateQuotaMonth(double balance, double interestRateYear, int months) {
         double interestRateMonth = (interestRateYear / 100) / 12;
-        double cuota = (amount * interestRateMonth) /
+        double cuota = (balance * interestRateMonth) /
                 (1 - Math.pow(1 + interestRateMonth, -months));
         return aroundTwoDecimal(cuota);
     }

@@ -1,6 +1,7 @@
 package com.ntt.data.ms.credit.controller;
 
 import com.ntt.data.ms.credit.dto.PaymentDTO;
+import com.ntt.data.ms.credit.dto.SpendDTO;
 import com.ntt.data.ms.credit.entity.Credit;
 import com.ntt.data.ms.credit.service.CreditService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,11 @@ public class CreditController {
     @PostMapping("/payments")
     public Mono<Credit> paymentCredit(@RequestBody PaymentDTO paymentDTO) {
         return creditService.paymentCredit(paymentDTO);
+    }
+
+    @PostMapping("/spend")
+    public Mono<Credit> spendCredit(@RequestBody SpendDTO spendDTO) {
+        return creditService.spendCredit(spendDTO);
     }
 
 }

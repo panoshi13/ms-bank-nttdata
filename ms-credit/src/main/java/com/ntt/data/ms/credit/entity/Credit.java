@@ -25,7 +25,6 @@ public class Credit {
     @Field("client_id")
     @JsonSerialize(using = ObjectIdSerializer.class)
     private ObjectId clientId;
-    private Double amount;
     @Field("balance")
     private Double balance;
     @Field("interest_rate")
@@ -43,6 +42,7 @@ public class Credit {
     private LocalDateTime grantDate;
     @Field("payments")
     private List<Payment> payments;
+    private List<Charge> charges;
 
     // MEtodo para setear la tasa de interés según el tipo de crédito
     public void setInterestRate() {
