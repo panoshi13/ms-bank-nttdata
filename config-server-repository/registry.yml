@@ -1,0 +1,24 @@
+server:  
+  port: 8761  # Puerto por defecto para Eureka Server
+spring:
+  application:
+    name: registry
+eureka:
+  instance:
+    hostname: registry
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      default-zone: http://registry:8761/eureka/
+  server:
+    enable-self-preservation: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true

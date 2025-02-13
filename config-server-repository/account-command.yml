@@ -1,0 +1,57 @@
+server:
+  port: 8082
+spring:
+  datasource:
+    url: jdbc:postgresql://account-db:5432/db_account
+    username: userbanksystem
+    password: sql
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      bootstrap-servers: kafka:9092
+      group-id: customer-group-id       # Nombre del grupo de consumidores
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      topic:
+        account-create: account-create-topic
+        transaction-deposit: transaction-deposit-topic
+    producer:
+      bootstrap-servers: kafka:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      topic:
+        transaction-deposit-result: transaction-deposit-result-topic
+  cloud:
+    discovery:
+      enabled: true # Habilita la funcionalidad de descubrimiento
+eureka:
+  client:
+    service-url:
+      defaultZone: http://registry:8761/eureka/ # Dirección del servidor Eureka
+    register-with-eureka: true # Permite registrarse en Eureka
+    fetch-registry: true # Obtiene el registro de servicios de Eureka
+  instance:
+    prefer-ip-address: true # Utiliza la IP en lugar del hostname
+
+
+security:
+  jwt:
+    time: 1000
+    secret: 33743677397A24432646294A404D635166546A576E5A7234753778214125442A
+  get:
+    token:
+      uri: /authenticate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true
