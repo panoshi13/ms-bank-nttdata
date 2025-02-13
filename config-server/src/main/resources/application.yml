@@ -8,9 +8,9 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/alexi-ae/kafka-bank-system-core.git
-          default-label: main
-          search-paths: config-server-data
+          uri: https://github.com/panoshi13/ms-bank-nttdata.git
+          default-label: master
+          search-paths: config-server-repository
 management:
   endpoints:
     web:

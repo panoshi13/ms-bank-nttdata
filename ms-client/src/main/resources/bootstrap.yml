@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: ms-client  # Nombre del microservicio
+  cloud:
+    config:
+      uri: http://localhost:9000  # URL del Config Server
+      name: ms-client  # Nombre del archivo de configuración que buscará
+
