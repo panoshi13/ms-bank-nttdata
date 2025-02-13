@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: Microservicio Cuentas Bancarias
+  description: API para realizar acciones sobre cuentas bancarias.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor local
+
+paths:
+  /cuentas/bancarias:
+    get:
+      tags:
+        - listar
+      summary: Obtener listado de cuentas bancarias
+      operationId: listarCuentasBancarias
+      description: Permite listar todas las cuentas bancarias en la base de datos Mongo.
+      responses:
+        '200':
+          description: Listado de cuentas bancarias.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CuentaResponse'
+        '404':
+          description: No se encontraron cuentas bancarias.
+
+  /cuentas/register:
+    post:
+      tags:
+        - registrar
+      summary: Registra una cuenta bancaria
+      operationId: crearCuentasBancarias
+      description: Registra una cuenta bancaria.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CuentaRequest'
+      responses:
+        '201':
+          description: Registro realizado con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaResponse'
+        '400':
+          description: Error en la solicitud.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Solicitud inválida."
+
+components:
+  schemas:
+    Movimiento:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador del movimiento
+        tipo:
+          type: string
+          description: Tipo de movimiento (crédito/débito)
+        monto:
+          type: number
+          format: double
+          description: Monto del movimiento
+        fecha:
+          type: string
+          format: date-time
+          description: Fecha del movimiento
+
+    CuentaRequest:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: Tipo de cuenta
+        clienteId:
+          type: string
+          description: ID del cliente
+        saldo:
+          type: number
+          format: double
+          description: Saldo de la cuenta
+        moneda:
+          type: string
+          description: Currency de la cuenta
+        fechaApertura:
+          type: string
+          format: date-time
+          description: Fecha de apertura de la cuenta
+        comisionMantenimiento:
+          type: number
+          format: double
+          description: Comisión de mantenimiento
+        limiteMovimientos:
+          type: integer
+          description: Límite de movimientos (puede ser null)
+        movimientos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movimiento'
+        titulares:
+          type: array
+          items:
+            type: string
+          description: Lista de titulares
+        firmantesAutorizados:
+          type: array
+          items:
+            type: string
+          description: Lista de firmantes autorizados
+      required:
+        - tipo
+        - clienteId
+        - saldo
+        - moneda
+        - fechaApertura
+
+    CuentaResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: Tipo de cuenta
+        clienteId:
+          type: string
+          description: ID del cliente
+        saldo:
+          type: number
+          format: double
+          description: Saldo de la cuenta
+        moneda:
+          type: string
+          description: Currency de la cuenta
+        fechaApertura:
+          type: string
+          format: date-time
+          description: Fecha de apertura de la cuenta
+        comisionMantenimiento:
+          type: number
+          format: double
+          description: Comisión de mantenimiento
+        limiteMovimientos:
+          type: integer
+          description: Límite de movimientos (puede ser null)
+        movimientos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movimiento'
+        titulares:
+          type: array
+          items:
+            type: string
+          description: Lista de titulares
+        firmantesAutorizados:
+          type: array
+          items:
+            type: string
+          description: Lista de firmantes autorizados
+      required:
+        - tipo
+        - clienteId
+        - saldo
+        - moneda
+        - fechaApertura

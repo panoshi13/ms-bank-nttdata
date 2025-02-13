@@ -1,0 +1,28 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: ¡Hola Mundo!
+servers:
+  - url: http://localhost:8585
+paths:
+  /hello:
+    get:
+      summary: Retorna Hola Mundo
+      operationId: hello
+      tags:
+        - hello
+      responses:
+        '200':
+          description: Hola Mundo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelloResponse"
+components:
+  schemas:
+    HelloResponse:
+      required:
+        - text
+      properties:
+        text:
+          type: string
