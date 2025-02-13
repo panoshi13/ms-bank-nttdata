@@ -1,12 +1,12 @@
 spring:
   application:
     name: ms-bank-accounts
+  spring:
+    data:
+      mongodb:
+        uri: mongodb://localhost:27017/bank
 server:
   port: 8080
-spring:
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/bank
 api:
   client:
     url: http://localhost:8085

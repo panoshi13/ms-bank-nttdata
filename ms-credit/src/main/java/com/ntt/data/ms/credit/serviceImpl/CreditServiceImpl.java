@@ -33,9 +33,9 @@ public class CreditServiceImpl implements CreditService {
 
     public CreditServiceImpl(CreditRepository creditRepository,
                              WebClient.Builder webClientBuilder,
-                             @Value("${api.client.url}") String bankAccountUrl) {
+                             @Value("${api.client.url}") String clientUrl) {
         this.creditRepository = creditRepository;
-        this.webClient = webClientBuilder.baseUrl(bankAccountUrl).build();
+        this.webClient = webClientBuilder.baseUrl(clientUrl).build();
     }
 
     @Override

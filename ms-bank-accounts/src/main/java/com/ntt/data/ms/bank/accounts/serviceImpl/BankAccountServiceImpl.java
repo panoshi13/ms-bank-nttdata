@@ -10,6 +10,7 @@ import com.ntt.data.ms.bank.accounts.entity.Holder;
 import com.ntt.data.ms.bank.accounts.entity.Movement;
 import com.ntt.data.ms.bank.accounts.repository.BankAccountRepository;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -28,9 +29,12 @@ public class BankAccountServiceImpl implements BankAccountService {
     private final BankAccountRepository bankAccountRepository;
     private final WebClient webClient;
 
-    public BankAccountServiceImpl(BankAccountRepository bankAccountRepository, WebClient.Builder webClientBuilder) {
+
+    public BankAccountServiceImpl(BankAccountRepository bankAccountRepository,
+                                  WebClient.Builder webClientBuilder,
+                                  @Value("${api.client.url}") String clientUrl) {
         this.bankAccountRepository = bankAccountRepository;
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8085").build();
+        this.webClient = webClientBuilder.baseUrl(clientUrl).build();
     }
 
     @Override
