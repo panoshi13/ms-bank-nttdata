@@ -194,6 +194,11 @@ public class CreditServiceImpl implements CreditService {
                 });
     }
 
+    @Override
+    public Mono<Credit> getCreditById(String id) {
+        return creditRepository.findById(id);
+    }
+
     // Metodo auxiliar para guardar el crédito
     private Mono<Credit> saveCredit(Credit credit) {
         credit.setGrantDate(LocalDateTime.now());

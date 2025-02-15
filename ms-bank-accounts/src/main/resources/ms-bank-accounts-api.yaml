@@ -78,7 +78,6 @@ components:
           type: string
           format: date-time
           description: Fecha del movimiento
-
     CuentaRequest:
       type: object
       properties:

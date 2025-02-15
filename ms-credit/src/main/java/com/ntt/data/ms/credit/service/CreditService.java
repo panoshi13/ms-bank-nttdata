@@ -14,4 +14,6 @@ public interface CreditService {
     Mono<Credit> paymentCredit(PaymentDTO paymentDTO);
 
     Mono<Credit> spendCredit(SpendDTO spendDTO);
+
+    Mono<Credit> getCreditById(String id);
 }

@@ -10,6 +10,7 @@ import com.ntt.data.ms.bank.accounts.entity.Holder;
 import com.ntt.data.ms.bank.accounts.entity.Movement;
 import com.ntt.data.ms.bank.accounts.repository.BankAccountRepository;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
+import com.ntt.data.ms.bank.accounts.util.Util;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -143,6 +144,15 @@ public class BankAccountServiceImpl implements BankAccountService {
         return bankAccountRepository.findById(depositDTO.getId())
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
                 .flatMap(bankAccount -> {
+                    if (bankAccount.getLimitMovements() == 0){
+                        return Mono.error(new CustomException("Agotaste los movimientos del mes"));
+                    }
+
+                    if (bankAccount.getType() == AccountType.FIXED_TERM){
+                        if (!Util.isDayOfMoth(bankAccount.getDayWithdrawalDeposit()))
+                            return Mono.error(new CustomException("No se encuentra en el dia para retirar o depositar"));
+                    }
+
                     if (depositDTO.getAmount() <= 0) {
                         return Mono.error(new CustomException("El monto debe ser mayor a 0"));
                     }
@@ -170,7 +180,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .sorted(Comparator.comparing(Movement::getDate).reversed())
                 .collect(Collectors.toList());
         bankAccount.setMovements(getMovements);
-
+        bankAccount.setLimitMovements(bankAccount.getLimitMovements()-1);
         return bankAccountRepository.save(bankAccount);
     }
 
@@ -183,6 +193,11 @@ public class BankAccountServiceImpl implements BankAccountService {
                     if (depositDTO.getAmount() <= 0) {
                         return Mono.error(new CustomException("El monto debe ser mayor a 0"));
                     }
+
+                    if (bankAccount.getLimitMovements() == 0){
+                        return Mono.error(new CustomException("Agotaste los movimientos del mes"));
+                    }
+
                     if (depositDTO.getAmount() > bankAccount.getBalance()) {
                         return Mono.error(new CustomException("Sin saldo suficiente"));
                     }
@@ -190,5 +205,11 @@ public class BankAccountServiceImpl implements BankAccountService {
                     bankAccount.setBalance(bankAccount.getBalance() - depositDTO.getAmount());
                     return getBankAccountMono(bankAccount, "withdraw", depositDTO);
                 });
+    }
+
+    @Override
+    public Mono<BankAccount> getBankAccountByProductId(String productId) {
+        return bankAccountRepository.findById(productId)
+                .switchIfEmpty(Mono.error(new CustomException("No se encontraron elementos")));
     }
 }

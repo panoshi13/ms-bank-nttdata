@@ -20,6 +20,11 @@ public class CreditController {
         return creditService.getAll();
     }
 
+    @GetMapping("/{id}")
+    public Mono<Credit> getCreditById(@PathVariable String id) {
+        return creditService.getCreditById(id);
+    }
+
     @PostMapping("/register")
     public Mono<Credit> createCredit(@RequestBody Credit credit) {
         return creditService.create(credit);

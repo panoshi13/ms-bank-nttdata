@@ -21,6 +21,11 @@ public class BankAccountController {
         return bankAccountService.getAll();
     }
 
+    @GetMapping("/bank/{productId}")
+    public Mono<BankAccount> getBankAccountByProductId(@PathVariable String productId) {
+        return bankAccountService.getBankAccountByProductId(productId);
+    }
+
     @PostMapping("/register")
     public Mono<BankAccount> createBankAccount(@RequestBody BankAccount bankAccount) {
         return bankAccountService.create(bankAccount);

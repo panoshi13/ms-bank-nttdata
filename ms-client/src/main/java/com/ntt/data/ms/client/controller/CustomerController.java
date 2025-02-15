@@ -1,5 +1,7 @@
 package com.ntt.data.ms.client.controller;
 
+/*
+import com.ntt.data.ms.client.dto.ProductDTO;
 import com.ntt.data.ms.client.entity.Customer;
 import com.ntt.data.ms.client.service.CustomerService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +13,6 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/customers")
 public class CustomerController {
-
     private final CustomerService customerService;
 
     // Crear un cliente
@@ -29,7 +30,7 @@ public class CustomerController {
 
     // Obtener un cliente
     @GetMapping("/{id}")
-    public Mono<Customer> getClienById(@PathVariable String id) {
+    public Mono<Customer> getCustomerById(@PathVariable String id) {
         return customerService.findById(id);
     }
 
@@ -44,4 +45,11 @@ public class CustomerController {
     public Mono<String> deleteClient(@PathVariable String id) {
         return customerService.delete(id);
     }
+
+    @GetMapping("/{clientId}/products/{productId}/movements")
+    public Mono<ProductDTO> getMovement(@PathVariable String clientId, @PathVariable String productId){
+        return customerService.getMovement(clientId,productId);
+    }
+
 }
+ */

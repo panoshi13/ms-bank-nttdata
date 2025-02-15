@@ -1,0 +1,67 @@
+openapi: 3.0.0
+info:
+  title: Banco API
+  description: API para obtener los clientes de un banco
+  version: 1.0.0
+servers:
+  - url: http://localhost:8085
+paths:
+  /customers:
+    get:
+      summary: Obtener lista de clientes
+      operationId: getAllClients
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerResponse'
+  /customers/{id}:
+    get:
+      summary: Obtener un cliente por ID
+      operationId: getCustomerById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67a42a1dc1ef9d814f3258a8
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          description: Cliente no encontrado
+components:
+  schemas:
+    CustomerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 67a42a1dc1ef9d814f3258a8
+        type:
+          type: string
+          example: PERSONAL
+        name:
+          type: string
+          example: Juan Pérez
+        identification:
+          type: string
+          example: 12345678
+        phone:
+          type: string
+          example: 987654321
+        email:
+          type: string
+          example: juan@example.com
+        address:
+          type: string
+          example: Av. Principal 12345

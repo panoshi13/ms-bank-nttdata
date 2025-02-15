@@ -23,7 +23,9 @@ public class Customer {
     private String email;
     private String address;
 
+    /*
     @Field("bank_accounts")
     private List<String> bankAccounts;  // Guarda solo los IDs de las cuentas
     private List<String> credits; // Guarda solo los IDs de los créditos
+     */
 }

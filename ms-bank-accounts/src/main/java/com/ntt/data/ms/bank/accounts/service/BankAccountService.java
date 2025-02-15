@@ -12,4 +12,5 @@ public interface BankAccountService {
     Mono<String> delete(String id);
     Mono<BankAccount> depositBankAccount(DepositDTO depositDTO);
     Mono<BankAccount> withdrawBankAccount(DepositDTO depositDTO);
+    Mono<BankAccount> getBankAccountByProductId(String productId);
 }
