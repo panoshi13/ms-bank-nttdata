@@ -44,13 +44,13 @@ public class Credit {
     private List<Payment> payments;
     private List<Charge> charges;
 
-    // MEtodo para setear la tasa de interés según el tipo de crédito
+    // Metodo para setear la tasa de interés según el tipo de crédito
     public void setInterestRate() {
-        if ("CREDIT_CARD".equalsIgnoreCase(this.type.name())) {
+        if (CreditType.CREDIT_CARD.equals(this.type)) {
             this.interestRate = 2.5; // Ejemplo para tarjetas de crédito
-        } else if ("BUSINESS".equalsIgnoreCase(this.type.name())) {
+        } else if (CreditType.BUSINESS.equals(this.type)) {
             this.interestRate = 3.0; // Ejemplo para préstamos personales
-        } else if ("PERSONAL".equalsIgnoreCase(this.type.name())) {
+        } else if (CreditType.PERSONAL.equals(this.type)) {
             this.interestRate = 1.8; // Ejemplo para préstamos hipotecarios
         } else {
             this.interestRate = 2.0; // Valor por defecto

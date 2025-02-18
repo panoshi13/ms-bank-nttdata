@@ -1,5 +1,5 @@
 package com.ntt.data.ms.credit.controller;
-
+/*
 import com.ntt.data.ms.credit.dto.PaymentDTO;
 import com.ntt.data.ms.credit.dto.SpendDTO;
 import com.ntt.data.ms.credit.entity.Credit;
@@ -41,3 +41,5 @@ public class CreditController {
     }
 
 }
+
+ */

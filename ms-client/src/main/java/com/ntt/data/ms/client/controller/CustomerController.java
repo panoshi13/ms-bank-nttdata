@@ -17,7 +17,7 @@ public class CustomerController {
 
     // Crear un cliente
     @PostMapping
-    public Mono<String> createClient(@RequestBody Customer customer) {
+    public Mono<Customer> createClient(@RequestBody Customer customer) {
         return customerService.create(customer);
     }
 
@@ -36,7 +36,7 @@ public class CustomerController {
 
     // Actualzar un cliente
     @PutMapping
-    public Mono<String> updateClient(@RequestBody Customer customer) {
+    public Mono<Customer> updateClient(@RequestBody Customer customer) {
         return customerService.update(customer);
     }
 
@@ -52,4 +52,5 @@ public class CustomerController {
     }
 
 }
+
  */

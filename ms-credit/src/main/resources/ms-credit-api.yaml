@@ -1,0 +1,221 @@
+openapi: 3.0.0
+info:
+  title: Banco API
+  description: API para informacion de credito de cliente
+  version: 1.0.0
+servers:
+  - url: http://localhost:8585
+paths:
+  /credits:
+    get:
+      summary: Obtener todos los créditos de clientes
+      operationId: getAllClients
+      tags:
+        - credits
+      responses:
+        '200':
+          description: Información del crédito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditResponse"
+  /credits/{id}:
+    get:
+      summary: Obtener información de crédito por ID
+      operationId: getCreditById
+      tags:
+        - credits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67af81a852361b6ef529c52d
+      responses:
+        '200':
+          description: Información del crédito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditResponse"
+  /credits/register:
+    post:
+      summary: Registrar un nuevo crédito
+      operationId: registerCredit
+      tags:
+        - credits
+      requestBody:
+        description: Datos del crédito a registrar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditRequest"
+      responses:
+        '201':
+          description: Crédito registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditResponse"
+  /credits/payments:
+    post:
+      summary: Registrar un pago
+      operationId: registerPayment
+      tags:
+        - credits
+      requestBody:
+        description: Datos del pago a registrar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      responses:
+        '201':
+          description: Pago registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditResponse"
+  /credits/spend:
+    post:
+      summary: Registrar un gasto
+      operationId: registerSpend
+      tags:
+        - credits
+      requestBody:
+        description: Datos del gasto a registrar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpendRequest"
+      responses:
+        '201':
+          description: Gasto registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditResponse"
+components:
+  schemas:
+    CreditResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 67af81a852361b6ef529c52d
+        type:
+          type: string
+          example: CREDIT_CARD
+        clientId:
+          type: string
+          example: 67a42e3460443d2d12224b7b
+        balance:
+          type: number
+          format: double
+          example: 2000.0
+        interestRate:
+          type: number
+          format: double
+        balanceWithInterestRate:
+          type: number
+          format: double
+        creditLimit:
+          type: number
+          format: double
+          example: 2000.0
+        availableBalance:
+          type: number
+          format: double
+          example: 1984.0
+        monthlyFee:
+          type: number
+          format: double
+        termMonths:
+          type: integer
+          example: 24
+        status:
+          type: boolean
+          example: true
+        grantDate:
+          type: string
+          format: date-time
+          example: 2025-02-14T12:47:20.123
+        payments:
+          type: array
+          items:
+            type: object
+            properties:
+              amount:
+                type: number
+                format: double
+                example: 100.0
+              date:
+                type: string
+                format: date-time
+                example: 2025-02-14T12:49:18.248
+        charges:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                example: Pago de Seguro
+              amount:
+                type: number
+                format: double
+                example: 58.0
+              date:
+                type: string
+                format: date-time
+                example: 2025-02-14T12:48:20.053
+    CreditRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          example: CREDIT_CARD
+        clientId:
+          type: string
+          example: 67a42a1dc1ef9d814f3258a8
+        balance:
+          type: number
+          format: double
+          example: 2000.00
+        termMonths:
+          type: integer
+          example: 24
+    PaymentRequest:
+      type: object
+      properties:
+        idCard:
+          type: string
+          example: 67b374dcf89c2913df4b3bd5
+        amount:
+          type: number
+          format: double
+          example: 100.00
+    SpendRequest:
+      type: object
+      properties:
+        idCard:
+          type: string
+          example: 67b0d5eb8050f1698d7eec29
+        charges:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                example: Consumo de Cevicheria
+              amount:
+                type: number
+                format: double
+                example: 58.0

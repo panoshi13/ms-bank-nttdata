@@ -1,4 +1,4 @@
-package com.ntt.data.ms.credit.serviceImpl;
+package com.ntt.data.ms.credit.service.serviceImpl;
 
 import com.ntt.data.ms.credit.client.ClientDTO;
 import com.ntt.data.ms.credit.config.CustomException;
@@ -40,7 +40,7 @@ public class CreditServiceImpl implements CreditService {
 
     @Override
     public Flux<Credit> getAll() {
-        return null;
+        return creditRepository.findAll();
     }
 
     @Override
@@ -75,11 +75,11 @@ public class CreditServiceImpl implements CreditService {
                                     return saveCredit(credit);
                                 });
                     }
-
+                    credit.setCreditLimit(credit.getBalance());
                     if (credit.getType().equals(CreditType.CREDIT_CARD)) {
-                        credit.setCreditLimit(credit.getBalance());
                         credit.setAvailableBalance(credit.getCreditLimit());
                     }
+
 
                     // Si es un crédito BUSINESS o TARJETA_CREDITO, lo guardamos directamente
                     return saveCredit(credit);
@@ -154,6 +154,9 @@ public class CreditServiceImpl implements CreditService {
         return creditRepository.findById(spendDTO.getIdCard())
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
                 .flatMap(credit -> {
+                    if (credit.getType() != CreditType.CREDIT_CARD)
+                        return Mono.error(new CustomException("No es una tarjeta de crédito"));
+
                     if (!credit.getStatus())
                         return Mono.error(new CustomException("El credito esta vacio o desactivado"));
 

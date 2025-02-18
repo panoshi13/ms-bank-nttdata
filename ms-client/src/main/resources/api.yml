@@ -1,11 +1,29 @@
 openapi: 3.0.0
 info:
   title: Banco API
-  description: API para obtener los clientes de un banco
+  description: API para clientes de un banco
   version: 1.0.0
 servers:
   - url: http://localhost:8085
 paths:
+  /customers/register:
+    post:
+      summary: Crear cliente
+      operationId: createClient
+      requestBody:
+        description: Cliente a crear
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
   /customers:
     get:
       summary: Obtener lista de clientes
@@ -19,6 +37,23 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CustomerResponse'
+    put:
+      summary: Actualizar cliente
+      operationId: updateClient
+      requestBody:
+        description: Cliente a actualizar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
   /customers/{id}:
     get:
       summary: Obtener un cliente por ID
@@ -39,8 +74,103 @@ paths:
                 $ref: '#/components/schemas/CustomerResponse'
         '404':
           description: Cliente no encontrado
+    delete:
+      summary: Eliminar cliente
+      operationId: deleteClient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67a692d5a5863b6075133360
+      responses:
+        '200':
+          description: Cliente eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cliente eliminado exitosamente
+        '404':
+          description: Cliente no encontrado
+  /customers/{customerId}/products/{productId}/movements:
+    get:
+      summary: Obtener movimientos de un cliente por ID de producto
+      operationId: getCustomerProductMovements
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67a42a1dc1ef9d814f3258a8
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67af7919c77cae749a03414d
+      responses:
+        '200':
+          description: Movimientos del cliente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerProductMovementsResponse'
+  /customers/{customerId}/products/{cardId}/balance:
+    get:
+      summary: Obtener saldo disponible de un producto
+      operationId: getCustomerProductBalance
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67a42a1dc1ef9d814f3258a8
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67af7919c77cae749a03414d
+      responses:
+        '200':
+          description: Saldo disponible del producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerProductBalanceResponse'
 components:
   schemas:
+    CustomerRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 67a42a1dc1ef9d814f3258a8
+        type:
+          type: string
+          example: PERSONAL
+        name:
+          type: string
+          example: Juan Pérez
+        identification:
+          type: string
+          example: 12345678
+        phone:
+          type: string
+          example: 987654321
+        email:
+          type: string
+          example: juan@example.com
+        address:
+          type: string
+          example: Av. Principal 12345
     CustomerResponse:
       type: object
       properties:
@@ -65,3 +195,76 @@ components:
         address:
           type: string
           example: Av. Principal 12345
+    CustomerProductMovementsResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Juan Pérez
+        identification:
+          type: string
+          example: 12345678
+        movementsBankAccount:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: deposit
+              amount:
+                type: number
+                format: double
+                example: 200.0
+              date:
+                type: string
+                format: date-time
+                example: 2025-02-14T12:11:02.653
+        movementsCredit:
+          type: object
+          properties:
+            payments:
+              type: array
+              items:
+                type: object
+                properties:
+                  amount:
+                    type: number
+                    format: double
+                    example: 100.0
+                  date:
+                    type: string
+                    format: date-time
+                    example: 2025-02-15T13:05:16.926
+            charges:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                    example: Consumo de Cevicheria
+                  amount:
+                    type: number
+                    format: double
+                    example: 58.0
+                  date:
+                    type: string
+                    format: date-time
+                    example: 2025-02-15T13:00:05.182
+    CustomerProductBalanceResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Freddy
+        identification:
+          type: string
+          example: 76456879
+        typeCard:
+          type: string
+          example: CREDIT_CARD
+        availableBalance:
+          type: number
+          format: double
+          example: 2255.00

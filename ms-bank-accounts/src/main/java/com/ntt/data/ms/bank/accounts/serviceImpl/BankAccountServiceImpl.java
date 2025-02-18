@@ -51,19 +51,31 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public Mono<BankAccount> create(BankAccount bankAccount) {
+    public Mono<BankAccount> create(BankAccount bankAccount){
         return getData(String.valueOf(bankAccount.getClientId()))
                 .switchIfEmpty(Mono.error(new CustomException("El cliente no existe")))
-                .flatMap(client -> validateClientType(String.valueOf(client.getType())))
+                .flatMap(client -> validateClientType(String.valueOf(client.getType()), bankAccount))
                 .flatMap(clientType -> validateClientAccounts(bankAccount, clientType))
                 .flatMap(this::configureAccount)
                 .flatMap(bankAccountRepository::save);
     }
 
     // Metodo para validar el tipo de cliente
-    private Mono<ClientType> validateClientType(String clientType) {
+    private Mono<ClientType> validateClientType(String clientType, BankAccount bankAccount) {
         try {
-            return Mono.just(ClientType.valueOf(clientType.toUpperCase()));
+            ClientType type = ClientType.valueOf(clientType.toUpperCase());
+            if (ClientType.BUSINESS.equals(type)) {
+                if (AccountType.SAVINGS.equals(bankAccount.getType()) ||  AccountType.FIXED_TERM.equals(bankAccount.getType()))
+                    return Mono.error(new CustomException("No puede tener este tipo de cuenta."));
+
+                if (bankAccount.getHolders() == null || bankAccount.getHolders().isEmpty()) {
+                    return Mono.error(new CustomException("Por favor asignar uno o más titulares a su cuenta bancaria."));
+                }
+                return Mono.just(type);
+            }
+            bankAccount.setHolders(null);
+            bankAccount.setAuthorizedSignatories(null);
+            return Mono.just(type);
         } catch (IllegalArgumentException e) {
             return Mono.error(new CustomException("Tipo de cliente no válido: " + clientType));
         }
@@ -74,6 +86,10 @@ public class BankAccountServiceImpl implements BankAccountService {
         return bankAccountRepository.findByClientId(bankAccount.getClientId())
                 .collectList()
                 .flatMap(accounts -> {
+                    if (accounts.isEmpty()) {
+                        return Mono.just(bankAccount);
+                    }
+
                     if (!canHaveAccount(bankAccount.getType(), clientType, accounts, bankAccount.getHolders())) {
                         return Mono.error(new CustomException("El cliente no puede tener este tipo de cuenta."));
                     }
@@ -85,6 +101,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     private boolean canHaveAccount(AccountType accountType, ClientType clientType, List<BankAccount> accounts, List<Holder> holders) {
         boolean hasSavingsAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.SAVINGS);
         boolean hasCurrentAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.CURRENT);
+        boolean hasFixedAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.FIXED_TERM);
 
         if (clientType == ClientType.PERSONAL) {
             return !(accountType == AccountType.SAVINGS && hasSavingsAccount) &&

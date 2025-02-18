@@ -1,175 +1,123 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
-  title: Microservicio Cuentas Bancarias
-  description: API para realizar acciones sobre cuentas bancarias.
+  title: Banco API
+  description: API para obtener información de cuentas bancarias
   version: 1.0.0
-
 servers:
   - url: http://localhost:8080
-    description: Servidor local
-
 paths:
-  /cuentas/bancarias:
+  /accounts/bank:
     get:
+      summary: Obtener información de cuentas bancarias
+      operationId: getBankAccounts
       tags:
-        - listar
-      summary: Obtener listado de cuentas bancarias
-      operationId: listarCuentasBancarias
-      description: Permite listar todas las cuentas bancarias en la base de datos Mongo.
+        - accounts
       responses:
         '200':
-          description: Listado de cuentas bancarias.
+          description: Lista de cuentas bancarias
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CuentaResponse'
-        '404':
-          description: No se encontraron cuentas bancarias.
-
-  /cuentas/register:
-    post:
+                  $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/bank/{id}:
+    get:
+      summary: Obtener información de una cuenta bancaria por ID
+      operationId: getBankAccountById
       tags:
-        - registrar
-      summary: Registra una cuenta bancaria
-      operationId: crearCuentasBancarias
-      description: Registra una cuenta bancaria.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CuentaRequest'
+        - accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67af7919c77cae749a03414d
       responses:
-        '201':
-          description: Registro realizado con éxito.
+        '200':
+          description: Información de la cuenta bancaria
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CuentaResponse'
-        '400':
-          description: Error en la solicitud.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Solicitud inválida."
-
+                $ref: "#/components/schemas/BankAccountResponse"
 components:
   schemas:
-    Movimiento:
+    BankAccountResponse:
       type: object
       properties:
         id:
           type: string
-          description: Identificador del movimiento
-        tipo:
+          example: 67af7919c77cae749a03414d
+        type:
           type: string
-          description: Tipo de movimiento (crédito/débito)
-        monto:
+          example: SAVINGS
+        clientId:
+          type: string
+          example: 67a42a1dc1ef9d814f3258a8
+        balance:
           type: number
           format: double
-          description: Monto del movimiento
-        fecha:
+          example: 400.0
+        currency:
+          type: string
+          example: PEN
+        openingDate:
           type: string
           format: date-time
-          description: Fecha del movimiento
-    CuentaRequest:
-      type: object
-      properties:
-        tipo:
-          type: string
-          description: Tipo de cuenta
-        clienteId:
-          type: string
-          description: ID del cliente
-        saldo:
+          example: 2025-02-14T12:10:49.687
+        maintenance:
           type: number
           format: double
-          description: Saldo de la cuenta
-        moneda:
-          type: string
-          description: Currency de la cuenta
-        fechaApertura:
-          type: string
-          format: date-time
-          description: Fecha de apertura de la cuenta
-        comisionMantenimiento:
-          type: number
-          format: double
-          description: Comisión de mantenimiento
-        limiteMovimientos:
+          example: 0.0
+        limitMovements:
           type: integer
-          description: Límite de movimientos (puede ser null)
-        movimientos:
-          type: array
-          items:
-            $ref: '#/components/schemas/Movimiento'
-        titulares:
-          type: array
-          items:
-            type: string
-          description: Lista de titulares
-        firmantesAutorizados:
-          type: array
-          items:
-            type: string
-          description: Lista de firmantes autorizados
-      required:
-        - tipo
-        - clienteId
-        - saldo
-        - moneda
-        - fechaApertura
-
-    CuentaResponse:
-      type: object
-      properties:
-        tipo:
+          example: 0
+        dayWithdrawalDeposit:
           type: string
-          description: Tipo de cuenta
-        clienteId:
-          type: string
-          description: ID del cliente
-        saldo:
-          type: number
-          format: double
-          description: Saldo de la cuenta
-        moneda:
-          type: string
-          description: Currency de la cuenta
-        fechaApertura:
-          type: string
-          format: date-time
-          description: Fecha de apertura de la cuenta
-        comisionMantenimiento:
-          type: number
-          format: double
-          description: Comisión de mantenimiento
-        limiteMovimientos:
-          type: integer
-          description: Límite de movimientos (puede ser null)
-        movimientos:
+          nullable: true
+          example: null
+        movements:
           type: array
           items:
-            $ref: '#/components/schemas/Movimiento'
-        titulares:
+            type: object
+            properties:
+              type:
+                type: string
+                example: withdraw
+              amount:
+                type: number
+                format: double
+                example: 100.0
+              date:
+                type: string
+                format: date-time
+                example: 2025-02-14T12:11:21.236
+        holders:
           type: array
           items:
-            type: string
-          description: Lista de titulares
-        firmantesAutorizados:
+            type: object
+            properties:
+              name:
+                type: string
+                example: harold
+              document:
+                type: string
+                example: 76123154
+              documentType:
+                type: string
+                example: DNI
+        authorizedSignatories:
           type: array
           items:
-            type: string
-          description: Lista de firmantes autorizados
-      required:
-        - tipo
-        - clienteId
-        - saldo
-        - moneda
-        - fechaApertura
+            type: object
+            properties:
+              name:
+                type: string
+                example: harold
+              document:
+                type: string
+                example: 76123154
+              documentType:
+                type: string
+                example: DNI

@@ -1,6 +1,7 @@
 package com.ntt.data.ms.client.client;
 
 import com.ntt.data.ms.client.dto.Movement;
+import com.ntt.data.ms.client.entity.AccountType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,5 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BankAccountDTO {
+    private AccountType type;
+    private Double balance;
     private List<Movement> movements;
 }
