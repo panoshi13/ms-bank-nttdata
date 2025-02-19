@@ -9,3 +9,5 @@ server:
 api:
   client:
     url: http://localhost:8085
+  credit:
+    url: http://localhost:8082
