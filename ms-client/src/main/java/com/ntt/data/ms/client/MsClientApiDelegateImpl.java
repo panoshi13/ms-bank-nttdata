@@ -71,4 +71,12 @@ public class MsClientApiDelegateImpl implements CustomersApiDelegate {
         return customerService.getBalanceAvailable(customerId,cardId)
                 .map(ResponseEntity::ok);
     }
+
+    @Override
+    public Mono<ResponseEntity<MonthlyBalanceReportResponse>> getMonthlyBalanceReport(String clientId, ServerWebExchange exchange) {
+        return customerService.getMonthlyBalanceReport(clientId)
+                .map(ResponseEntity::ok);
+    }
+
+
 }

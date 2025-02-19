@@ -1,6 +1,5 @@
 package com.ntt.data.ms.bank.accounts.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.ntt.data.ms.bank.accounts.config.ObjectIdSerializer;
 import lombok.Getter;
@@ -15,7 +14,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@Document(collection = "Cuentas")
+@Document(collection = "BankAccounts")
 public class BankAccount {
 
     @Id

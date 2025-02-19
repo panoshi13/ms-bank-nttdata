@@ -6,8 +6,7 @@ import com.ntt.data.ms.client.config.CustomException;
 import com.ntt.data.ms.client.dto.BalanceAvailableDTO;
 import com.ntt.data.ms.client.entity.Customer;
 import com.ntt.data.ms.client.mapper.ClientMapper;
-import com.ntt.data.ms.client.model.CustomerProductBalanceResponse;
-import com.ntt.data.ms.client.model.CustomerProductMovementsResponse;
+import com.ntt.data.ms.client.model.*;
 import com.ntt.data.ms.client.repository.CustomerRepository;
 import com.ntt.data.ms.client.service.CustomerService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +16,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -63,6 +68,24 @@ public class CustomerServiceImpl implements CustomerService {
                 .onStatus(httpStatus -> httpStatus.value() == 400,
                         clientResponse -> Mono.error(new CustomException("Error 400 en consulta de movimientos de tarjeta")))
                 .bodyToMono(BankAccountDTO.class);
+    }
+
+    public Flux<BankAccountDTO> fetchBankAccountByClientId(String clientId) {
+        return bankAccountApiClient.get()
+                .uri("/accounts/bank/{id}/customer", clientId)
+                .retrieve()
+                .onStatus(httpStatus -> httpStatus.value() == 400,
+                        clientResponse -> Mono.error(new CustomException("Error 400 en consulta de la cuenta bancaria por cliente")))
+                .bodyToFlux(BankAccountDTO.class);
+    }
+
+    public Flux<CreditDTO> fetchCreditByClientId(String clientId) {
+        return creditApiClient.get()
+                .uri("/credits/{id}/client", clientId)
+                .retrieve()
+                .onStatus(httpStatus -> httpStatus.value() == 400,
+                        clientResponse -> Mono.error(new CustomException("Error 400 en consulta del credito por cliente")))
+                .bodyToFlux(CreditDTO.class);
     }
 
 
@@ -113,6 +136,71 @@ public class CustomerServiceImpl implements CustomerService {
                 .switchIfEmpty(Mono.error(new RuntimeException("Cliente no encontrado")))
                 .flatMap(customer -> getCustomerProductBalanceResponse(productId, customer));
     }
+
+    @Override
+    public Mono<MonthlyBalanceReportResponse> getMonthlyBalanceReport(String clientId) {
+        Flux<BankAccountDTO> bankAccountDTOFlux = fetchBankAccountByClientId(clientId)
+                .onErrorResume(throwable -> {
+                    log.error("Error al obtener saldo de cuenta bancaria: {}", throwable.getMessage());
+                    return Flux.empty();
+                });
+        Flux<CreditDTO> creditDTOFlux = fetchCreditByClientId(clientId)
+                .onErrorResume(throwable -> {
+                    log.error("Error al obtener saldo de cuenta crédito: {}", throwable.getMessage());
+                    return Flux.empty();
+                });
+
+        return Mono.zip(
+                        bankAccountDTOFlux.collectList(),
+                        creditDTOFlux.collectList()
+                )
+                .flatMap(tuple -> {
+                    List<BankAccountDTO> bankAccounts = tuple.getT1();
+                    List<CreditDTO> credits = tuple.getT2();
+
+                    // Calcular saldos promedio diarios
+                    List<MonthlyBalanceReportResponseAverageBalancesBankAccounts> balancesBankAccountsProducts = bankAccounts.stream()
+                            .map(account -> {
+                                MonthlyBalanceReportResponseAverageBalancesBankAccounts balancesBankAccounts = new MonthlyBalanceReportResponseAverageBalancesBankAccounts();
+                                LocalDate today = LocalDate.now();
+                                int dayOfMonth = today.getDayOfMonth();
+                                balancesBankAccounts.setAccountId(account.getId());
+                                var balanceAverage = account.getBalance() / dayOfMonth;
+                                balancesBankAccounts.setAverageDailyBalance(aroundTwoDecimal(balanceAverage));
+                                return balancesBankAccounts;
+                            })
+                            .collect(Collectors.toList());
+
+                    // Calcular saldos promedio diarios
+                    List<MonthlyBalanceReportResponseAverageBalancesCreditProducts> balancesCreditProducts  = credits.stream()
+                            .map(credit -> {
+                                MonthlyBalanceReportResponseAverageBalancesCreditProducts creditProducts = new MonthlyBalanceReportResponseAverageBalancesCreditProducts();
+                                LocalDate today = LocalDate.now();
+                                int dayOfMonth = today.getDayOfMonth();
+                                creditProducts.setProductId(credit.getId());
+                                var balanceAverage = credit.getAvailableBalance() / dayOfMonth;
+                                creditProducts.setAverageDailyBalance(aroundTwoDecimal(balanceAverage));
+                                return creditProducts;
+                            })
+                            .collect(Collectors.toList());
+
+                    // Crear el reporte
+                    MonthlyBalanceReportResponse report = new MonthlyBalanceReportResponse();
+                    report.setClientId(clientId);
+
+                    MonthlyBalanceReportResponseAverageBalances averageBalances = new MonthlyBalanceReportResponseAverageBalances();
+                    averageBalances.setBankAccounts(balancesBankAccountsProducts);
+                    averageBalances.setCreditProducts(balancesCreditProducts);
+
+                    report.averageBalances(averageBalances);
+                    return Mono.just(report);
+                });
+    }
+
+    public static double aroundTwoDecimal(double valor) {
+        return new BigDecimal(valor).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
+
 
     private Mono<CustomerProductBalanceResponse> getCustomerProductBalanceResponse(String productId, Customer customer) {
         Mono<BankAccountDTO> bankAccountDTOMono = fetchBankAccount(productId)

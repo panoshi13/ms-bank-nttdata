@@ -163,21 +163,97 @@ paths:
                   message:
                     type: string
                     example: Transferencia exitosa
+  /accounts/bank/{id}/customer:
+    get:
+      summary: Obtener cuentas bancarias por ID de cliente
+      operationId: getBankAccountsByClientId
+      tags:
+        - accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67b6040abed02b62fac4a4ff
+      responses:
+        '200':
+          description: Lista de cuentas bancarias del cliente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/bank/reports:
+    get:
+      summary: Generar un reporte de comisiones por producto en un periodo de tiempo
+      operationId: getCommissionReport
+      tags:
+        - accounts
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 15-02-2025
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 19-02-2025
+      responses:
+        '200':
+          description: Reporte de comisiones por producto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportCommissionResponse"
 components:
   schemas:
+    ReportCommissionResponse:
+      type: object
+      properties:
+        startDate:
+          type: string
+          example: 15-02-2025
+        endDate:
+          type: string
+          example: 19-02-2025
+        commissionByProduct:
+          type: array
+          items:
+            type: object
+            properties:
+              typeProduct:
+                type: string
+                example: SAVINGS
+              totalCommission:
+                type: number
+                format: double
+                example: 2200.00
     TransferRequest:
       type: object
       properties:
         sourceAccountId:
           type: string
           example: 67b5442f6a59ca515b645d6a
+          description: ID de la cuenta de origen
         destinationAccountId:
           type: string
           example: 67b5442f6a59ca515b645d6a
+          description: ID de la cuenta de destino
         amount:
           type: number
           format: double
           example: 2970.00
+          description: Monto a transferir
+      required:
+        - sourceAccountId
+        - destinationAccountId
+        - amount
     TransactionRequest:
       type: object
       properties:

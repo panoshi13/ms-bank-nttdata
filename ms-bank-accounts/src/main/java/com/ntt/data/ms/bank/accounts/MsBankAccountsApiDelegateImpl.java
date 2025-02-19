@@ -58,8 +58,28 @@ public class MsBankAccountsApiDelegateImpl implements AccountsApiDelegate {
 
     @Override
     public Mono<ResponseEntity<InlineResponse200>> transferBetweenAccounts(Mono<TransferRequest> transferRequest, ServerWebExchange exchange) {
-        return AccountsApiDelegate.super.transferBetweenAccounts(transferRequest, exchange);
+        return transferRequest
+                .flatMap(request -> bankAccountService.transferBetweenAccounts(Mono.just(request))
+                        .map(ResponseEntity::ok)
+                        .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(new InlineResponse200().message(e.getMessage()))))
+                );
     }
+
+    @Override
+    public Mono<ResponseEntity<Flux<BankAccountResponse>>> getBankAccountsByClientId(String id, ServerWebExchange exchange) {
+        Flux<BankAccountResponse> bankAccountResponses = bankAccountService.getBankAccountsByClientId(id)
+                .map(bankAccountMapper::mapToBankAccountResponse);
+
+        return Mono.just(ResponseEntity.ok(bankAccountResponses));
+    }
+
+
+    @Override
+    public Mono<ResponseEntity<ReportCommissionResponse>> getCommissionReport(String startDate, String endDate, ServerWebExchange exchange) {
+        return bankAccountService.getCommissionReport(startDate,endDate)
+                .map(ResponseEntity::ok);
+    }
+
 }
 
 

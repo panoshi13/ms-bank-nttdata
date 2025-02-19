@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class CreditDTO {
+    private String id;
     private CreditType type;
     private Double availableBalance;
     private List<Payment> payments;

@@ -145,6 +145,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomerProductBalanceResponse'
+  /customers/reports/monthly-balance/{clientId}:
+    get:
+      summary: Obtener el reporte de saldos promedio diarios del mes en curso para un cliente
+      operationId: getMonthlyBalanceReport
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67b5029efaa5d336c1b0b460
+      responses:
+        '200':
+          description: Reporte de saldos promedio diarios del mes en curso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyBalanceReportResponse"
 components:
   schemas:
     CustomerRequest:
@@ -280,3 +298,36 @@ components:
           type: number
           format: double
           example: 2255.00
+    MonthlyBalanceReportResponse:
+      type: object
+      properties:
+        clientId:
+          type: string
+          example: 67a42a1dc1ef9d814f3258a8
+        averageBalances:
+          type: object
+          properties:
+            bankAccounts:
+              type: array
+              items:
+                type: object
+                properties:
+                  accountId:
+                    type: string
+                    example: 67b5442f6a59ca515b645d6a
+                  averageDailyBalance:
+                    type: number
+                    format: double
+                    example: 1500.75
+            creditProducts:
+              type: array
+              items:
+                type: object
+                properties:
+                  productId:
+                    type: string
+                    example: 67b5442f6a59ca515b645d6c
+                  averageDailyBalance:
+                    type: number
+                    format: double
+                    example: 5000.00

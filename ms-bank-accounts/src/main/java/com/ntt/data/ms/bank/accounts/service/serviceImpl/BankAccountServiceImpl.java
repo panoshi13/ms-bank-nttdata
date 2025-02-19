@@ -1,4 +1,4 @@
-package com.ntt.data.ms.bank.accounts.serviceImpl;
+package com.ntt.data.ms.bank.accounts.service.serviceImpl;
 
 import com.ntt.data.ms.bank.accounts.client.dto.ClientDTO;
 import com.ntt.data.ms.bank.accounts.client.dto.ClientType;
@@ -10,7 +10,7 @@ import com.ntt.data.ms.bank.accounts.entity.AccountType;
 import com.ntt.data.ms.bank.accounts.entity.BankAccount;
 import com.ntt.data.ms.bank.accounts.entity.Holder;
 import com.ntt.data.ms.bank.accounts.entity.Movement;
-import com.ntt.data.ms.bank.accounts.model.TransactionRequest;
+import com.ntt.data.ms.bank.accounts.model.*;
 import com.ntt.data.ms.bank.accounts.repository.BankAccountRepository;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
 import com.ntt.data.ms.bank.accounts.util.Util;
@@ -23,11 +23,16 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,6 +57,11 @@ public class BankAccountServiceImpl implements BankAccountService {
         return bankAccountRepository.findAll();
     }
 
+    @Override
+    public Flux<BankAccount> getBankAccountsByClientId(String clientId) {
+        return bankAccountRepository.findByClientId(new ObjectId(clientId));
+    }
+
     public Mono<ClientDTO> getData(String id) {
         return customerApiClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/customers/{id}").build(id)) // Path variable
@@ -60,7 +70,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public Mono<BankAccount> create(BankAccount bankAccount){
+    public Mono<BankAccount> create(BankAccount bankAccount) {
         return getData(String.valueOf(bankAccount.getClientId()))
                 .switchIfEmpty(Mono.error(new CustomException("El cliente no existe")))
                 .flatMap(client -> validateClientType(client, bankAccount))
@@ -149,7 +159,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     private boolean canHaveAccount(AccountType accountType, ClientType clientType, List<BankAccount> accounts, List<Holder> holders) {
         boolean hasSavingsAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.SAVINGS);
         boolean hasCurrentAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.CURRENT);
-        boolean hasFixedAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.FIXED_TERM);
+        // boolean hasFixedAccount = accounts.stream().anyMatch(acc -> acc.getType() == AccountType.FIXED_TERM);
 
         if (clientType == ClientType.PERSONAL) {
             return !(accountType == AccountType.SAVINGS && hasSavingsAccount) &&
@@ -196,7 +206,6 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
 
-
     @Override
     public Mono<String> update(BankAccount bankAccount) {
         return null;
@@ -217,9 +226,9 @@ public class BankAccountServiceImpl implements BankAccountService {
                         // comisión
                         double comision = depositDTO.getAmount() * 0.05;
 
-                        if ((bankAccount.getType().equals(AccountType.FIXED_TERM)  || bankAccount.getType().equals(AccountType.SAVINGS)) && bankAccount.getLimitMovements() <= 0) {
+                        if ((bankAccount.getType().equals(AccountType.FIXED_TERM) || bankAccount.getType().equals(AccountType.SAVINGS)) && bankAccount.getLimitMovements() <= 0) {
                             // Aplicar la comisión al balance de la cuenta bancaria
-                            if (bankAccount.getBalance() - comision < 0.00){
+                            if (bankAccount.getBalance() - comision < 0.00) {
                                 return Mono.error(new CustomException("No cuenta con fondos suficiente por la comision agregada"));
                             }
                             existLimit = true;
@@ -235,8 +244,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                             return Mono.error(new CustomException("El monto debe ser mayor a 0"));
                         }
 
-                        bankAccount.setBalance(existLimit ? (bankAccount.getBalance() + depositDTO.getAmount())- comision : bankAccount.getBalance() + depositDTO.getAmount());
-                        return getBankAccountMono(bankAccount, "deposit", depositDTO);
+                        bankAccount.setBalance(existLimit ? (bankAccount.getBalance() + depositDTO.getAmount()) - comision : bankAccount.getBalance() + depositDTO.getAmount());
+                        return getBankAccountMono(bankAccount, "deposit [+]", depositDTO);
                     } catch (Exception e) {
                         log.error(e.getMessage());
                         return Mono.error(new CustomException("Ocurrió un error al procesar el depósito"));
@@ -245,7 +254,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     private Mono<BankAccount> getBankAccountMono(BankAccount bankAccount, String type, TransactionRequest depositDTO) {
-        if (bankAccount.getLimitMovements() <=  0){
+        if (bankAccount.getLimitMovements() <= 0) {
             type = type.concat(" - commission: 10.00");
         }
 
@@ -266,8 +275,8 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .sorted(Comparator.comparing(Movement::getDate).reversed())
                 .collect(Collectors.toList());
         bankAccount.setMovements(getMovements);
-        if ((bankAccount.getType().equals(AccountType.FIXED_TERM)  || bankAccount.getType().equals(AccountType.SAVINGS)))
-            bankAccount.setLimitMovements(bankAccount.getLimitMovements()-1);
+        if ((bankAccount.getType().equals(AccountType.FIXED_TERM) || bankAccount.getType().equals(AccountType.SAVINGS)))
+            bankAccount.setLimitMovements(bankAccount.getLimitMovements() - 1);
         return bankAccountRepository.save(bankAccount);
     }
 
@@ -298,7 +307,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                     }
 
                     bankAccount.setBalance(existLimit ? (bankAccount.getBalance() - depositDTO.getAmount()) - comision : bankAccount.getBalance() - depositDTO.getAmount());
-                    return getBankAccountMono(bankAccount, "withdraw", depositDTO);
+                    return getBankAccountMono(bankAccount, "withdraw [-]", depositDTO);
                 });
     }
 
@@ -307,4 +316,151 @@ public class BankAccountServiceImpl implements BankAccountService {
         return bankAccountRepository.findById(productId)
                 .switchIfEmpty(Mono.error(new CustomException("No se encontraron elementos")));
     }
+
+    @Override
+    public Mono<InlineResponse200> transferBetweenAccounts(Mono<TransferRequest> requestMono) {
+        return requestMono
+                .flatMap(transferRequest -> {
+                    // Validar campos
+                    if (transferRequest.getSourceAccountId() == null) {
+                        return Mono.error(new CustomException("sourceAccountId no puede ser nulo"));
+                    }
+                    if (transferRequest.getDestinationAccountId() == null) {
+                        return Mono.error(new CustomException("destinationAccountId no puede ser nulo"));
+                    }
+                    if (transferRequest.getAmount() == null) {
+                        return Mono.error(new CustomException("amount no puede ser nulo"));
+                    }
+
+                    // Buscar cuentas
+                    Mono<BankAccount> accountBankSource = bankAccountRepository.findById(transferRequest.getSourceAccountId())
+                            .switchIfEmpty(Mono.error(new CustomException("No existe la cuenta de origen")));
+                    Mono<BankAccount> accountBankDestini = bankAccountRepository.findById(transferRequest.getDestinationAccountId())
+                            .switchIfEmpty(Mono.error(new CustomException("No existe la cuenta de destino")));
+
+                    // Realizar transferencia
+                    return Mono.zip(accountBankSource, accountBankDestini)
+                            .flatMap(tuple -> {
+                                BankAccount sourceAccount = tuple.getT1();
+                                BankAccount destinationAccount = tuple.getT2();
+                                // Lógica de transferencia (ejemplo simple)
+                                if (sourceAccount.getBalance() < transferRequest.getAmount()) {
+                                    return Mono.error(new CustomException("Saldo insuficiente en la cuenta de origen"));
+                                }
+
+                                // --- movement source transfer
+                                List<Movement> getMovementsSource = sourceAccount.getMovements();
+                                if (getMovementsSource == null) {
+                                    getMovementsSource = new ArrayList<>();
+                                }
+                                Movement movementSource = Movement.builder()
+                                        .amount(transferRequest.getAmount())
+                                        .date(LocalDateTime.now())
+                                        .type("Transfer [-] Account: " + destinationAccount.getId())
+                                        .build();
+                                getMovementsSource.add(movementSource);
+                                // ordenamos los movimientos del ultimo al primero
+                                getMovementsSource = getMovementsSource.stream()
+                                        .sorted(Comparator.comparing(Movement::getDate).reversed())
+                                        .collect(Collectors.toList());
+
+                                sourceAccount.setMovements(getMovementsSource);
+                                sourceAccount.setBalance(sourceAccount.getBalance() - transferRequest.getAmount());
+
+                                // --- movement destini transfer
+                                List<Movement> getMovementsDestini = destinationAccount.getMovements();
+                                if (getMovementsDestini == null) {
+                                    getMovementsDestini = new ArrayList<>();
+                                }
+                                Movement movementDestini = Movement.builder()
+                                        .amount(transferRequest.getAmount())
+                                        .date(LocalDateTime.now())
+                                        .type("Transfer [+] Account: " + destinationAccount.getId())
+                                        .build();
+                                getMovementsDestini.add(movementDestini);
+                                // ordenamos los movimientos del ultimo al primero
+                                getMovementsDestini = getMovementsDestini.stream()
+                                        .sorted(Comparator.comparing(Movement::getDate).reversed())
+                                        .collect(Collectors.toList());
+
+                                destinationAccount.setMovements(getMovementsDestini);
+                                destinationAccount.setBalance(destinationAccount.getBalance() + transferRequest.getAmount());
+                                return Mono.when(
+                                        bankAccountRepository.save(sourceAccount),
+                                        bankAccountRepository.save(destinationAccount)
+                                ).thenReturn(new InlineResponse200().message("Transferencia exitosa"));
+                            });
+                });
+    }
+
+    @Override
+    public Mono<ReportCommissionResponse> getCommissionReport(String startDate, String endDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        LocalDate startDateLocal = LocalDate.parse(startDate, formatter);
+        LocalDate endDateLocal = LocalDate.parse(endDate, formatter);
+
+        LocalDateTime start = startDateLocal.atStartOfDay();
+        LocalDateTime end = endDateLocal.atStartOfDay();
+
+        return bankAccountRepository.findAll().collectList()
+                .flatMap(bankAccounts -> {
+                    ReportCommissionResponse reportCommissionResponse = new ReportCommissionResponse();
+                    reportCommissionResponse.startDate(startDate);
+                    reportCommissionResponse.endDate(endDate);
+
+                    Map<String, Double> commissionByProductMap = getCommissionByProductMap(bankAccounts, start, end);
+
+                    List<ReportCommissionResponseCommissionByProduct> commissionByProducts = commissionByProductMap.entrySet().stream()
+                            .map(entry -> createCommissionByProduct(entry))
+                            .collect(Collectors.toList());
+
+                    reportCommissionResponse.commissionByProduct(commissionByProducts);
+                    return Mono.just(reportCommissionResponse);
+                });
+    }
+
+    private Map<String, Double> getCommissionByProductMap(List<BankAccount> bankAccounts, LocalDateTime start, LocalDateTime end) {
+        return bankAccounts.stream()
+                .filter(bankAccount -> bankAccount.getMovements() != null && hasCommissionMovementsInDateRange(bankAccount, start, end))
+                .collect(Collectors.groupingBy(
+                        bankAccount -> bankAccount.getType().name(),
+                        Collectors.summingDouble(bankAccount -> bankAccount.getMovements().stream()
+                                .filter(movement -> hasCommissionType(movement.getType()))
+                                .mapToDouble(movement -> parseCommission(movement.getType()))
+                                .sum()
+                        )
+                ));
+    }
+
+    private boolean hasCommissionType(String type) {
+        Pattern pattern = Pattern.compile("\\d+\\.\\d+");
+        Matcher matcher = pattern.matcher(type);
+        return matcher.find();
+    }
+
+    private double parseCommission(String type) {
+        Pattern pattern = Pattern.compile("\\d+\\.\\d+");
+        Matcher matcher = pattern.matcher(type);
+        if (matcher.find()) {
+            return Double.parseDouble(matcher.group());
+        } else {
+            return 0.0;
+        }
+    }
+
+    private ReportCommissionResponseCommissionByProduct createCommissionByProduct(Map.Entry<String, Double> entry) {
+        ReportCommissionResponseCommissionByProduct report = new ReportCommissionResponseCommissionByProduct();
+        report.setTypeProduct(entry.getKey());
+        report.setTotalCommission(entry.getValue());
+        return report;
+    }
+
+    private boolean hasCommissionMovementsInDateRange(BankAccount bankAccount, LocalDateTime start, LocalDateTime end) {
+        return bankAccount.getMovements().stream()
+                .anyMatch(movement -> {
+                    LocalDateTime movementDate = movement.getDate();
+                    return hasCommissionType(movement.getType()) && !movementDate.toLocalDate().isBefore(start.toLocalDate()) && !movementDate.toLocalDate().isAfter(end.toLocalDate());
+                });
+    }
+
 }
