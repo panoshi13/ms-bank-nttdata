@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class ClientDTO {
     private ObjectId id;
-    private ClientType type;
+    private CustomerTypeDTO type;
     private String name;
     private String identification;
     private String phone;

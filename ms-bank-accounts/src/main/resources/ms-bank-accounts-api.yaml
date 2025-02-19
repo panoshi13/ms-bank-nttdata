@@ -41,8 +41,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/register:
+    post:
+      summary: Registrar una nueva cuenta bancaria
+      operationId: registerBankAccount
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: CURRENT
+                clientId:
+                  type: string
+                  example: 67a42e3460443d2d12224b7b
+                currency:
+                  type: string
+                  example: PEN
+                amount:
+                  type: number
+                  format: double
+                  example: 200.0
+                holders:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: Anita Tintaya
+                      document:
+                        type: string
+                        example: 74124577
+                      documentType:
+                        type: string
+                        example: DNI
+                authorizedSignatories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: Anita Tintaya
+                      document:
+                        type: string
+                        example: 74124577
+                      documentType:
+                        type: string
+                        example: DNI
+      responses:
+        '200':
+          description: Cuenta bancaria registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/deposit:
+    post:
+      summary: Realizar un depósito en una cuenta bancaria
+      operationId: depositToBankAccount
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionRequest"
+      responses:
+        '200':
+          description: Depósito realizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/withdraw:
+    post:
+      summary: Realizar un retiro de una cuenta bancaria
+      operationId: withdrawFromBankAccount
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+      responses:
+        '200':
+          description: Retiro realizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccountResponse"
+  /accounts/transfer:
+    post:
+      summary: Realizar una transferencia entre cuentas bancarias
+      operationId: transferBetweenAccounts
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Transferencia exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Transferencia exitosa
 components:
   schemas:
+    TransferRequest:
+      type: object
+      properties:
+        sourceAccountId:
+          type: string
+          example: 67b5442f6a59ca515b645d6a
+        destinationAccountId:
+          type: string
+          example: 67b5442f6a59ca515b645d6a
+        amount:
+          type: number
+          format: double
+          example: 2970.00
+    TransactionRequest:
+      type: object
+      properties:
+        cardId:
+          type: string
+          example: 67af7919c77cae749a03414d
+        amount:
+          type: number
+          format: double
+          example: 200.00
     BankAccountResponse:
       type: object
       properties:
@@ -75,7 +220,6 @@ components:
           example: 0
         dayWithdrawalDeposit:
           type: string
-          nullable: true
           example: null
         movements:
           type: array

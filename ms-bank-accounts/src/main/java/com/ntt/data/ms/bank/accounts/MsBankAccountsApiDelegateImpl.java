@@ -3,7 +3,7 @@ package com.ntt.data.ms.bank.accounts;
 
 import com.ntt.data.ms.bank.accounts.api.AccountsApiDelegate;
 import com.ntt.data.ms.bank.accounts.mapper.BankAccountMapper;
-import com.ntt.data.ms.bank.accounts.model.BankAccountResponse;
+import com.ntt.data.ms.bank.accounts.model.*;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +30,35 @@ public class MsBankAccountsApiDelegateImpl implements AccountsApiDelegate {
                 .map(bankAccountMapper::mapToBankAccountResponse);
 
         return Mono.just(ResponseEntity.ok(bankAccountResponses));
+    }
+
+
+    @Override
+    public Mono<ResponseEntity<BankAccountResponse>> registerBankAccount(Mono<InlineObject> inlineObject, ServerWebExchange exchange) {
+        return inlineObject
+                .map(bankAccountMapper::mapToBankAccount)
+                .flatMap(bankAccountService::create)
+                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+    }
+
+
+    @Override
+    public Mono<ResponseEntity<BankAccountResponse>> withdrawFromBankAccount(Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
+        return transactionRequest
+                .flatMap(bankAccountService::withdrawBankAccount)
+                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+    }
+
+    @Override
+    public Mono<ResponseEntity<BankAccountResponse>> depositToBankAccount(Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
+        return transactionRequest
+                .flatMap(bankAccountService::depositBankAccount)
+                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+    }
+
+    @Override
+    public Mono<ResponseEntity<InlineResponse200>> transferBetweenAccounts(Mono<TransferRequest> transferRequest, ServerWebExchange exchange) {
+        return AccountsApiDelegate.super.transferBetweenAccounts(transferRequest, exchange);
     }
 }
 

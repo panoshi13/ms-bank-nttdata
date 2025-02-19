@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 @Service
 @Slf4j
@@ -139,17 +140,19 @@ public class CustomerServiceImpl implements CustomerService {
                                     bankAccountDTOMono.defaultIfEmpty(new BankAccountDTO()),
                                     creditDTOMono.defaultIfEmpty(new CreditDTO())
                             )
-                            .map(tuple -> {
-                                BankAccountDTO bankAccountDTO = tuple.getT1();
-                                CreditDTO creditDTO = tuple.getT2();
-                                CustomerProductBalanceResponse balanceResponse = new CustomerProductBalanceResponse();
-                                balanceResponse.name(customer.getName());
-                                balanceResponse.identification(customer.getIdentification());
-                                balanceResponse.typeCard(bankAccountDTO.getType() == null ? creditDTO.getType().name() : bankAccountDTO.getType().name());
-                                balanceResponse.availableBalance(bankAccountDTO.getType() == null ? creditDTO.getAvailableBalance() : bankAccountDTO.getBalance());
-                                return balanceResponse;
-                            });
+                            .map(tuple -> getBalanceResponse(customer, tuple));
                 });
+    }
+
+    private static CustomerProductBalanceResponse getBalanceResponse(Customer customer, Tuple2<BankAccountDTO, CreditDTO> tuple) {
+        BankAccountDTO bankAccountDTO = tuple.getT1();
+        CreditDTO creditDTO = tuple.getT2();
+        CustomerProductBalanceResponse balanceResponse = new CustomerProductBalanceResponse();
+        balanceResponse.name(customer.getName());
+        balanceResponse.identification(customer.getIdentification());
+        balanceResponse.typeCard(bankAccountDTO.getType() == null ? creditDTO.getType().name() : bankAccountDTO.getType().name());
+        balanceResponse.availableBalance(bankAccountDTO.getType() == null ? creditDTO.getAvailableBalance() : bankAccountDTO.getBalance());
+        return balanceResponse;
     }
 
     private Mono<CustomerProductMovementsResponse> getProductDTOMono(String productId, Customer customer) {
@@ -178,19 +181,20 @@ public class CustomerServiceImpl implements CustomerService {
                                     bankAccountDTOMono.defaultIfEmpty(new BankAccountDTO()),
                                     creditDTOMono.defaultIfEmpty(new CreditDTO())
                             )
-                            .map(tuple -> {
-                                BankAccountDTO bankAccountDTO = tuple.getT1();
-                                CreditDTO creditDTO = tuple.getT2();
-                                CustomerProductMovementsResponse movementsResponse = new CustomerProductMovementsResponse();
-                                movementsResponse.setName(customer.getName());
-                                movementsResponse.setIdentification(customer.getIdentification());
-                                movementsResponse.setMovementsBankAccount(clientMapper.movementsBankAccounts(bankAccountDTO.getMovements()));
-                                movementsResponse.setMovementsCredit(clientMapper.movementsCredit(creditDTO));
-                                return movementsResponse;
-                            });
+                            .map(tuple -> getMovementsResponse(customer, tuple));
                 });
     }
 
+    private CustomerProductMovementsResponse getMovementsResponse(Customer customer, Tuple2<BankAccountDTO, CreditDTO> tuple) {
+        BankAccountDTO bankAccountDTO = tuple.getT1();
+        CreditDTO creditDTO = tuple.getT2();
+        CustomerProductMovementsResponse movementsResponse = new CustomerProductMovementsResponse();
+        movementsResponse.setName(customer.getName());
+        movementsResponse.setIdentification(customer.getIdentification());
+        movementsResponse.setMovementsBankAccount(clientMapper.movementsBankAccounts(bankAccountDTO.getMovements()));
+        movementsResponse.setMovementsCredit(clientMapper.movementsCredit(creditDTO));
+        return movementsResponse;
+    }
 
 
 }

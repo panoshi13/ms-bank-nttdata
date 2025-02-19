@@ -4,7 +4,10 @@ import com.ntt.data.ms.client.client.CreditDTO;
 import com.ntt.data.ms.client.dto.Charge;
 import com.ntt.data.ms.client.dto.Movement;
 import com.ntt.data.ms.client.dto.Payment;
+import com.ntt.data.ms.client.entity.ClientType;
 import com.ntt.data.ms.client.entity.Customer;
+import com.ntt.data.ms.client.entity.CustomerType;
+import com.ntt.data.ms.client.entity.ProfileType;
 import com.ntt.data.ms.client.model.*;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Component;
@@ -68,7 +71,8 @@ public class ClientMapper {
         Customer customer = new Customer();
         customer.setId(customerRequest.getId() != null ? new ObjectId(customerRequest.getId()) : new ObjectId());
         customer.setName(customerRequest.getName());
-        customer.setType(customerRequest.getType().toUpperCase());
+        customer.setType(new CustomerType(ClientType.valueOf(customerRequest.getType().getCustomerType()),
+                ProfileType.valueOf(customerRequest.getType().getProfile())));
         customer.setEmail(customerRequest.getEmail());
         customer.setIdentification(customerRequest.getIdentification());
         customer.setPhone(customerRequest.getPhone());
@@ -83,7 +87,10 @@ public class ClientMapper {
         customerResponse.setIdentification(customer.getIdentification());
         customerResponse.setAddress(customer.getAddress());
         customerResponse.setEmail(customer.getEmail());
-        customerResponse.setType(customer.getType());
+        CustomerRequestType customerRequestType = new CustomerRequestType();
+        customerRequestType.customerType(customer.getType().getCustomerType().name());
+        customerRequestType.profile(customer.getType().getProfile().name());
+        customerResponse.setType(customerRequestType);
         customerResponse.setPhone(customer.getPhone());
         return customerResponse;
     }

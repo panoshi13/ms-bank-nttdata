@@ -101,6 +101,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreditResponse"
+  /credits/{id}/client:
+    get:
+      summary: Obtener información de crédito por ID de cliente
+      operationId: getCreditByClientId
+      tags:
+        - credits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 67af7919c77cae749a03414d
+      responses:
+        '200':
+          description: Información del crédito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditResponse"
 components:
   schemas:
     CreditResponse:

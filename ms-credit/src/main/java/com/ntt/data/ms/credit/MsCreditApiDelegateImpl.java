@@ -9,6 +9,7 @@ import com.ntt.data.ms.credit.model.PaymentRequest;
 import com.ntt.data.ms.credit.model.SpendRequest;
 import com.ntt.data.ms.credit.service.CreditService;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -54,6 +55,18 @@ public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     @Override
     public Mono<ResponseEntity<Flux<CreditResponse>>> getAllClients(ServerWebExchange exchange) {
         return creditService.getAll()
+                .collectList()
+                .map(credits -> {
+                    Flux<CreditResponse> creditResponses = Flux.fromIterable(credits)
+                            .map(creditMapper::mapToCreditResponse);
+                    return ResponseEntity.ok(creditResponses);
+                })
+                .defaultIfEmpty(ResponseEntity.noContent().build());
+    }
+
+    @Override
+    public Mono<ResponseEntity<Flux<CreditResponse>>> getCreditByClientId(String id, ServerWebExchange exchange) {
+        return creditService.getCreditByClient(new ObjectId(id))
                 .collectList()
                 .map(credits -> {
                     Flux<CreditResponse> creditResponses = Flux.fromIterable(credits)

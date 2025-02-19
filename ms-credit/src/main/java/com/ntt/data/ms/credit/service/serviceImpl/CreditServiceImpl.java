@@ -10,6 +10,7 @@ import com.ntt.data.ms.credit.entity.CreditType;
 import com.ntt.data.ms.credit.entity.Payment;
 import com.ntt.data.ms.credit.repository.CreditRepository;
 import com.ntt.data.ms.credit.service.CreditService;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -48,41 +49,51 @@ public class CreditServiceImpl implements CreditService {
         return getDataClient(String.valueOf(credit.getClientId()))
                 .switchIfEmpty(Mono.error(new CustomException("El cliente no existe")))
                 .flatMap(clientDTO -> {
-                    // Validar si el tipo de crédito coincide con el tipo de cliente (excepto TARJETA_CREDITO)
-                    if (!credit.getType().equals(CreditType.CREDIT_CARD) &&
-                            !credit.getType().name().equals(clientDTO.getType().name())) {
-                        return Mono.error(new CustomException("El tipo de crédito no coincide con el tipo de cliente"));
+                    try {
+
+                        // Validar si el tipo de crédito coincide con el tipo de cliente (excepto TARJETA_CREDITO)
+                        if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
+                            var tipoClient = clientDTO.getType().getCustomerType().name();
+                            var tipoRequest = credit.getType().name();
+
+                            if (!tipoClient.equals(tipoRequest))
+                                return Mono.error(new CustomException("El tipo de crédito no coincide con el tipo de cliente"));
+                        }
+
+
+
+                        credit.setBalance(credit.getBalance());
+                        credit.setStatus(true);
+
+                        if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
+                            // Setear la tasa de interés
+                            credit.setInterestRate();
+                            var quota = calculateQuotaMonth(credit.getBalance(), credit.getInterestRate(), credit.getTermMonths());
+                            credit.setBalanceWithInterestRate(aroundTwoDecimal(quota * credit.getTermMonths()));
+                            credit.setMonthlyFee(quota);
+                        }
+
+                        // Si es un crédito PERSONAL, verificamos que el cliente no tenga ya un crédito activo
+                        if (credit.getType().equals(CreditType.PERSONAL)) {
+                            return creditRepository.countByClientIdAndType(credit.getClientId(), CreditType.PERSONAL)
+                                    .flatMap(count -> {
+                                        if (count > 0) {
+                                            return Mono.error(new CustomException("Un cliente personal solo puede tener un crédito activo"));
+                                        }
+                                        return saveCredit(credit);
+                                    });
+                        }
+                        credit.setCreditLimit(credit.getBalance());
+                        if (credit.getType().equals(CreditType.CREDIT_CARD)) {
+                            credit.setAvailableBalance(credit.getCreditLimit());
+                        }
+
+                        // Si es un crédito BUSINESS o TARJETA_CREDITO, lo guardamos directamente
+                        return saveCredit(credit);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return Mono.error(new CustomException("Ocurrió un error al procesar el crédito: " + e.getMessage()));
                     }
-
-                    credit.setBalance(credit.getBalance());
-                    credit.setStatus(true);
-
-                    if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
-                        // Setear la tasa de interés
-                        credit.setInterestRate();
-                        var quota = calculateQuotaMonth(credit.getBalance(), credit.getInterestRate(), credit.getTermMonths());
-                        credit.setBalanceWithInterestRate(aroundTwoDecimal(quota * credit.getTermMonths()));
-                        credit.setMonthlyFee(quota);
-                    }
-
-                    // Si es un crédito PERSONAL, verificamos que el cliente no tenga ya un crédito activo
-                    if (credit.getType().equals(CreditType.PERSONAL)) {
-                        return creditRepository.countByClientIdAndType(credit.getClientId(), CreditType.PERSONAL)
-                                .flatMap(count -> {
-                                    if (count > 0) {
-                                        return Mono.error(new CustomException("Un cliente personal solo puede tener un crédito activo"));
-                                    }
-                                    return saveCredit(credit);
-                                });
-                    }
-                    credit.setCreditLimit(credit.getBalance());
-                    if (credit.getType().equals(CreditType.CREDIT_CARD)) {
-                        credit.setAvailableBalance(credit.getCreditLimit());
-                    }
-
-
-                    // Si es un crédito BUSINESS o TARJETA_CREDITO, lo guardamos directamente
-                    return saveCredit(credit);
                 });
     }
 
@@ -147,6 +158,12 @@ public class CreditServiceImpl implements CreditService {
                     credit.setPayments(payments);
                     return creditRepository.save(credit);
                 });
+    }
+
+    @Override
+    public Flux<Credit> getCreditByClient(ObjectId clientId) {
+        return creditRepository.findByClientId(clientId)
+                .filter(credit -> credit.getType().equals(CreditType.CREDIT_CARD));
     }
 
     @Override
@@ -219,7 +236,7 @@ public class CreditServiceImpl implements CreditService {
         return new BigDecimal(valor).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
-    public Mono<ClientDTO> getDataClient(String id) {
+    public Mono<ClientDTO>  getDataClient(String id) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/customers/{id}").build(id)) // Path variable
                 .retrieve()
