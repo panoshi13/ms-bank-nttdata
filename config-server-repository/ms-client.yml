@@ -3,7 +3,7 @@ spring:
     name: ms-client
   data:
     mongodb:
-      uri: mongodb://localhost:27017/bank
+      uri: mongodb://localhost:27017/ms-customer
 server:
   port: 8085
 api:

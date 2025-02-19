@@ -3,7 +3,7 @@ spring:
     name: ms-bank-accounts
   data:
     mongodb:
-      uri: mongodb://localhost:27017/bank
+      uri: mongodb://localhost:27017/ms-bank-account
 server:
   port: 8080
 api:
