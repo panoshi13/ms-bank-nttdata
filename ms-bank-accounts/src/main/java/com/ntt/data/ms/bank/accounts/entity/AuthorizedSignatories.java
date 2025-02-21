@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthorizedSignatories {
     private String name;
+
     private String document;
+
     private String documentType; // "DNI", "RUC", etc.
 }

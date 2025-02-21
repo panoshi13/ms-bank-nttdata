@@ -14,7 +14,10 @@ import java.util.List;
 @NoArgsConstructor
 public class ProductDTO {
     private String name;
+
     private String identification;
+
     private List<Movement> movementsBankAccount;
+
     private CreditDTO movementsCredit;
 }

@@ -5,5 +5,6 @@ import lombok.Data;
 @Data
 public class DepositDTO {
     private String id;
+
     private Double amount;
 }

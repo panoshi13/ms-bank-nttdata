@@ -1,4 +1,4 @@
-package com.ntt.data.ms.credit.dto;
+package com.ntt.data.ms.bank.accounts.client.dto;
 
 import lombok.Data;
 
@@ -6,9 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class PaymentDTO {
-    private String idCard;
-
-    private double amount;
+    private Double amount;
 
     private LocalDateTime date;
 }

@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @Service
 public class CreditServiceImpl implements CreditService {
     private final CreditRepository creditRepository;
+
     private final WebClient webClient;
 
     public CreditServiceImpl(CreditRepository creditRepository,
@@ -51,13 +52,16 @@ public class CreditServiceImpl implements CreditService {
                 .flatMap(clientDTO -> {
                     try {
 
-                        // Validar si el tipo de crédito coincide con el tipo de cliente (excepto TARJETA_CREDITO)
+                        // Validar si el tipo de crédito coincide
+                        // con el tipo de cliente (excepto TARJETA_CREDITO)
                         if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
                             var tipoClient = clientDTO.getType().getCustomerType().name();
                             var tipoRequest = credit.getType().name();
 
                             if (!tipoClient.equals(tipoRequest))
-                                return Mono.error(new CustomException("El tipo de crédito no coincide con el tipo de cliente"));
+                                return Mono.error(
+                                        new CustomException("El tipo de crédito no coincide " +
+                                                "con el tipo de cliente"));
                         }
 
 
@@ -68,17 +72,24 @@ public class CreditServiceImpl implements CreditService {
                         if (!credit.getType().equals(CreditType.CREDIT_CARD)) {
                             // Setear la tasa de interés
                             credit.setInterestRate();
-                            var quota = calculateQuotaMonth(credit.getBalance(), credit.getInterestRate(), credit.getTermMonths());
-                            credit.setBalanceWithInterestRate(aroundTwoDecimal(quota * credit.getTermMonths()));
+                            var quota = calculateQuotaMonth(credit.getBalance(),
+                                                            credit.getInterestRate(),
+                                                            credit.getTermMonths());
+                            credit.setBalanceWithInterestRate(
+                                    aroundTwoDecimal(quota * credit.getTermMonths()));
                             credit.setMonthlyFee(quota);
                         }
 
-                        // Si es un crédito PERSONAL, verificamos que el cliente no tenga ya un crédito activo
+                        // Si es un crédito PERSONAL, verificamos que el
+                        // cliente no tenga ya un crédito activo
                         if (credit.getType().equals(CreditType.PERSONAL)) {
-                            return creditRepository.countByClientIdAndType(credit.getClientId(), CreditType.PERSONAL)
+                            return creditRepository.countByClientIdAndType(credit.getClientId(),
+                                                                            CreditType.PERSONAL)
                                     .flatMap(count -> {
                                         if (count > 0) {
-                                            return Mono.error(new CustomException("Un cliente personal solo puede tener un crédito activo"));
+                                            return Mono.error(
+                                                    new CustomException("Un cliente personal solo" +
+                                                            " puede tener un crédito activo"));
                                         }
                                         return saveCredit(credit);
                                     });
@@ -92,7 +103,9 @@ public class CreditServiceImpl implements CreditService {
                         return saveCredit(credit);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        return Mono.error(new CustomException("Ocurrió un error al procesar el crédito: " + e.getMessage()));
+                        return Mono.error(
+                                new CustomException("Ocurrió un error al procesar " +
+                                        "el crédito: " + e.getMessage()));
                     }
                 });
     }
@@ -103,7 +116,8 @@ public class CreditServiceImpl implements CreditService {
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
                 .flatMap(credit -> {
                     if (!credit.getStatus())
-                        return Mono.error(new CustomException("El credito esta vacio o desactivado"));
+                        return Mono.error(
+                                new CustomException("El credito esta vacio o desactivado"));
 
                     if (paymentDTO.getAmount() <= 0) {
                         return Mono.error(new CustomException("El monto debe ser mayor a 0"));
@@ -136,10 +150,14 @@ public class CreditServiceImpl implements CreditService {
                     if (credit.getType() == CreditType.CREDIT_CARD) {
                         var needPay = paymentsMissing - credit.getCreditLimit();
                         if (paymentsMissingWithAmount > credit.getCreditLimit()) {
-                            return Mono.error(new CustomException("Usted solo necesita pagar: " + aroundTwoDecimal(needPay)));
+                            return Mono.error(
+                                    new CustomException("Usted solo necesita pagar: "
+                                            + aroundTwoDecimal(needPay)));
                         }
 
-                        credit.setAvailableBalance(aroundTwoDecimal(credit.getAvailableBalance() + paymentDTO.getAmount()));
+                        credit.setAvailableBalance(
+                                aroundTwoDecimal(credit.getAvailableBalance() +
+                                        paymentDTO.getAmount()));
 
                         if (Objects.equals(0.00, credit.getAvailableBalance())) {
                             credit.setStatus(false);
@@ -147,10 +165,13 @@ public class CreditServiceImpl implements CreditService {
                     } else {
                         if (paymentsMissingWithAmount > credit.getBalanceWithInterestRate()) {
                             var needPay = credit.getBalanceWithInterestRate() - credit.getBalance();
-                            return Mono.error(new CustomException("Usted solo necesita pagar: " + aroundTwoDecimal(needPay)));
+                            return Mono.error(
+                                    new CustomException("Usted solo necesita pagar: "
+                                            + aroundTwoDecimal(needPay)));
                         }
                         credit.setBalance(aroundTwoDecimal(paymentsMissingWithAmount));
-                        if (Objects.equals(credit.getBalance(), credit.getBalanceWithInterestRate())) {
+                        if (Objects.equals(credit.getBalance(),
+                                credit.getBalanceWithInterestRate())) {
                             credit.setStatus(false);
                         }
                     }
@@ -162,8 +183,7 @@ public class CreditServiceImpl implements CreditService {
 
     @Override
     public Flux<Credit> getCreditByClient(ObjectId clientId) {
-        return creditRepository.findByClientId(clientId)
-                .filter(credit -> credit.getType().equals(CreditType.CREDIT_CARD));
+        return creditRepository.findByClientId(clientId);
     }
 
     @Override
@@ -172,24 +192,32 @@ public class CreditServiceImpl implements CreditService {
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
                 .flatMap(credit -> {
                     if (credit.getType() != CreditType.CREDIT_CARD)
-                        return Mono.error(new CustomException("No es una tarjeta de crédito"));
+                        return Mono.error(
+                                new CustomException("No es una tarjeta de crédito"));
 
                     if (!credit.getStatus())
-                        return Mono.error(new CustomException("El credito esta vacio o desactivado"));
+                        return Mono.error(
+                                new CustomException("El credito esta vacio o desactivado"));
 
                     if (credit.getAvailableBalance() == 0.00)
-                        return Mono.error(new CustomException("Ya no tiene saldo disponible"));
+                        return Mono.error(
+                                new CustomException("Ya no tiene saldo disponible"));
 
-                    var sumaGastos = spendDTO.getCharges().stream().mapToDouble(Charge::getAmount).sum();
+                    var sumaGastos = spendDTO.getCharges().stream()
+                            .mapToDouble(Charge::getAmount).sum();
                     if (sumaGastos <= 0) {
-                        return Mono.error(new CustomException("El monto debe ser mayor a 0"));
+                        return Mono.error(
+                                new CustomException("El monto debe ser mayor a 0"));
                     }
 
                     if (sumaGastos > credit.getAvailableBalance()) {
-                        return Mono.error(new CustomException("Solo le queda disponible: "+credit.getAvailableBalance()));
+                        return Mono.error(
+                                new CustomException("Solo le queda disponible: "
+                                        + credit.getAvailableBalance()));
                     }
 
-                    credit.setAvailableBalance(aroundTwoDecimal(credit.getAvailableBalance() - sumaGastos));
+                    credit.setAvailableBalance(
+                            aroundTwoDecimal(credit.getAvailableBalance() - sumaGastos));
 
 
                     List<Charge> charges = credit.getCharges();
@@ -225,7 +253,9 @@ public class CreditServiceImpl implements CreditService {
         return creditRepository.save(credit);
     }
 
-    public static double calculateQuotaMonth(double balance, double interestRateYear, int months) {
+    public static double calculateQuotaMonth(double balance,
+                                             double interestRateYear,
+                                             int months) {
         double interestRateMonth = (interestRateYear / 100) / 12;
         double cuota = (balance * interestRateMonth) /
                 (1 - Math.pow(1 + interestRateMonth, -months));
@@ -233,7 +263,8 @@ public class CreditServiceImpl implements CreditService {
     }
 
     public static double aroundTwoDecimal(double valor) {
-        return new BigDecimal(valor).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return new BigDecimal(valor).setScale(2,
+                RoundingMode.HALF_UP).doubleValue();
     }
 
     public Mono<ClientDTO>  getDataClient(String id) {

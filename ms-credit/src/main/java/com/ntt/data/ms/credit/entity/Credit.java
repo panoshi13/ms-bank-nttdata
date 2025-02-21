@@ -20,28 +20,40 @@ import java.util.List;
 public class Credit {
     @Id
     private String id;
+
     private CreditType type;
 
     @Field("client_id")
     @JsonSerialize(using = ObjectIdSerializer.class)
     private ObjectId clientId;
+
     @Field("balance")
     private Double balance;
+
     @Field("interest_rate")
     @Setter(AccessLevel.NONE)
     private Double interestRate;
+
     private Double balanceWithInterestRate;
+
     private Double creditLimit;
+
     private Double availableBalance;
+
     @Field("monthly_fee")
     private Double monthlyFee;
+
     @Field("term_months")
     private Integer termMonths;
+
     private Boolean status;
+
     @Field("grant_date")
     private LocalDateTime grantDate;
+
     @Field("payments")
     private List<Payment> payments;
+
     private List<Charge> charges;
 
     // Metodo para setear la tasa de interés según el tipo de crédito

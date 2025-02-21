@@ -12,7 +12,6 @@ import com.ntt.data.ms.client.model.*;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -26,52 +25,59 @@ public class ClientMapper {
         List<CustomerProductMovementsResponseMovementsCreditPayments> paymentsList = null;
         if (payments != null) {
             paymentsList = payments.stream()
-                    .map(payment -> {
-                        CustomerProductMovementsResponseMovementsCreditPayments paymentsResponse = new CustomerProductMovementsResponseMovementsCreditPayments();
-                        paymentsResponse.setAmount(payment.getAmount());
-                        paymentsResponse.setDate(payment.getDate().atOffset(ZoneOffset.UTC));
-                        return paymentsResponse;
-                    })
-                    .toList();
+                .map(payment -> {
+                    CustomerProductMovementsResponseMovementsCreditPayments paymentsResponse =
+                        new CustomerProductMovementsResponseMovementsCreditPayments();
+                    paymentsResponse.setAmount(payment.getAmount());
+                    paymentsResponse.setDate(payment.getDate().atOffset(ZoneOffset.UTC));
+                    return paymentsResponse;
+                })
+                .toList();
         }
 
         List<CustomerProductMovementsResponseMovementsCreditCharges> chargesList = null;
         if (charges != null) {
             chargesList = charges.stream()
-                    .map(charge -> {
-                        CustomerProductMovementsResponseMovementsCreditCharges chargesResponse = new CustomerProductMovementsResponseMovementsCreditCharges();
-                        chargesResponse.setDescription(charge.getDescription());
-                        chargesResponse.setAmount(charge.getAmount());
-                        chargesResponse.setDate(charge.getDate().atOffset(ZoneOffset.UTC));
-                        return chargesResponse;
-                    })
-                    .toList();
+                .map(charge -> {
+                    CustomerProductMovementsResponseMovementsCreditCharges chargesResponse =
+                        new CustomerProductMovementsResponseMovementsCreditCharges();
+                    chargesResponse.setDescription(charge.getDescription());
+                    chargesResponse.setAmount(charge.getAmount());
+                    chargesResponse.setDate(charge.getDate().atOffset(ZoneOffset.UTC));
+                    return chargesResponse;
+                })
+                .toList();
         }
 
-        CustomerProductMovementsResponseMovementsCredit movementsCredit = new CustomerProductMovementsResponseMovementsCredit();
+        CustomerProductMovementsResponseMovementsCredit movementsCredit =
+            new CustomerProductMovementsResponseMovementsCredit();
         movementsCredit.setCharges(chargesList);
         movementsCredit.setPayments(paymentsList);
         return movementsCredit;
     }
 
-    public List<CustomerProductMovementsResponseMovementsBankAccount> movementsBankAccounts(List<Movement> movements) {
+    public List<CustomerProductMovementsResponseMovementsBankAccount> movementsBankAccounts(
+        List<Movement> movements) {
         return movements.stream()
-                .map(movement -> {
-                    CustomerProductMovementsResponseMovementsBankAccount bankAccount = new CustomerProductMovementsResponseMovementsBankAccount();
-                    bankAccount.setAmount(movement.getAmount());
-                    bankAccount.setType(movement.getType());
-                    bankAccount.setDate(movement.getDate().atOffset(ZoneOffset.UTC));
-                    return bankAccount;
-                })
-                .toList();
+            .map(movement -> {
+                CustomerProductMovementsResponseMovementsBankAccount bankAccount =
+                    new CustomerProductMovementsResponseMovementsBankAccount();
+                bankAccount.setAmount(movement.getAmount());
+                bankAccount.setType(movement.getType());
+                bankAccount.setDate(movement.getDate().atOffset(ZoneOffset.UTC));
+                return bankAccount;
+            })
+            .toList();
     }
 
 
-    public Customer mapToCustomer (CustomerRequest customerRequest) {
+    public Customer mapToCustomer(CustomerRequest customerRequest) {
         Customer customer = new Customer();
-        customer.setId(customerRequest.getId() != null ? new ObjectId(customerRequest.getId()) : new ObjectId());
+        customer.setId(customerRequest.getId() != null ? new ObjectId(customerRequest.getId()) :
+            new ObjectId());
         customer.setName(customerRequest.getName());
-        customer.setType(new CustomerType(ClientType.valueOf(customerRequest.getType().getCustomerType()),
+        customer.setType(
+            new CustomerType(ClientType.valueOf(customerRequest.getType().getCustomerType()),
                 ProfileType.valueOf(customerRequest.getType().getProfile())));
         customer.setEmail(customerRequest.getEmail());
         customer.setIdentification(customerRequest.getIdentification());
@@ -94,6 +100,4 @@ public class ClientMapper {
         customerResponse.setPhone(customer.getPhone());
         return customerResponse;
     }
-
-
 }

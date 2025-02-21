@@ -5,5 +5,6 @@ import lombok.Data;
 @Data
 public class CustomerTypeDTO {
     private ClientType customerType;
+
     private ProfileType profile;
 }

@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CustomerType {
     private ClientType customerType;
+
     private ProfileType profile;
 }

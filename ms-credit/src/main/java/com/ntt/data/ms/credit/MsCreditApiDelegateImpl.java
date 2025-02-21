@@ -20,10 +20,12 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     private final CreditService creditService;
+
     private final CreditMapper creditMapper;
 
     @Override
-    public Mono<ResponseEntity<CreditResponse>> registerSpend(Mono<SpendRequest> spendRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<CreditResponse>> registerSpend(
+            Mono<SpendRequest> spendRequest, ServerWebExchange exchange) {
         return spendRequest
                 .map(creditMapper::mapToSpendDTO)
                 .flatMap(creditService::spendCredit)
@@ -31,7 +33,8 @@ public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     }
 
     @Override
-    public Mono<ResponseEntity<CreditResponse>> registerPayment(Mono<PaymentRequest> paymentRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<CreditResponse>> registerPayment(
+            Mono<PaymentRequest> paymentRequest, ServerWebExchange exchange) {
         return paymentRequest
                 .map(creditMapper::mapToPaymentDTO)
                 .flatMap(creditService::paymentCredit)
@@ -39,7 +42,8 @@ public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     }
 
     @Override
-    public Mono<ResponseEntity<CreditResponse>> registerCredit(Mono<CreditRequest> creditRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<CreditResponse>> registerCredit(
+            Mono<CreditRequest> creditRequest, ServerWebExchange exchange) {
         return creditRequest
                 .map(creditMapper::mapToCredit)
                 .flatMap(creditService::create)
@@ -47,13 +51,15 @@ public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     }
 
     @Override
-    public Mono<ResponseEntity<CreditResponse>> getCreditById(String id, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<CreditResponse>> getCreditById(
+            String id, ServerWebExchange exchange) {
         return creditService.getCreditById(id)
                 .map(credit -> ResponseEntity.ok(creditMapper.mapToCreditResponse(credit)));
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<CreditResponse>>> getAllClients(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Flux<CreditResponse>>> getAllClients(
+            ServerWebExchange exchange) {
         return creditService.getAll()
                 .collectList()
                 .map(credits -> {
@@ -65,7 +71,8 @@ public class MsCreditApiDelegateImpl implements CreditsApiDelegate {
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<CreditResponse>>> getCreditByClientId(String id, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Flux<CreditResponse>>> getCreditByClientId(
+            String id, ServerWebExchange exchange) {
         return creditService.getCreditByClient(new ObjectId(id))
                 .collectList()
                 .map(credits -> {

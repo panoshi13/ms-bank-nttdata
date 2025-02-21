@@ -16,8 +16,14 @@ import java.util.List;
 @Builder
 public class CreditDTO {
     private String id;
+
     private CreditType type;
+
+    private Boolean status;
+
     private Double availableBalance;
+
     private List<Payment> payments;
+
     private List<Charge> charges;
 }

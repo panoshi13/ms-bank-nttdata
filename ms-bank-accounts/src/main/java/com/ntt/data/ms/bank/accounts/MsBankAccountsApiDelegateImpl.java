@@ -16,58 +16,71 @@ import reactor.core.publisher.Mono;
 @Component
 public class MsBankAccountsApiDelegateImpl implements AccountsApiDelegate {
     private final BankAccountService bankAccountService;
+
     private final BankAccountMapper bankAccountMapper;
 
     @Override
-    public Mono<ResponseEntity<BankAccountResponse>> getBankAccountById(String id, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BankAccountResponse>> getBankAccountById(
+        String id,
+        ServerWebExchange exchange) {
         return bankAccountService.getBankAccountByProductId(id)
-                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.mapToBankAccountResponse(bankAccount)));
+            .map(bankAccount -> ResponseEntity.ok(
+                bankAccountMapper.mapToBankAccountResponse(bankAccount)));
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<BankAccountResponse>>> getBankAccounts(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Flux<BankAccountResponse>>> getBankAccounts(
+        ServerWebExchange exchange) {
         Flux<BankAccountResponse> bankAccountResponses = bankAccountService.getAll()
-                .map(bankAccountMapper::mapToBankAccountResponse);
+            .map(bankAccountMapper::mapToBankAccountResponse);
 
         return Mono.just(ResponseEntity.ok(bankAccountResponses));
     }
 
 
     @Override
-    public Mono<ResponseEntity<BankAccountResponse>> registerBankAccount(Mono<InlineObject> inlineObject, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BankAccountResponse>> registerBankAccount(
+        Mono<InlineObject> inlineObject, ServerWebExchange exchange) {
         return inlineObject
-                .map(bankAccountMapper::mapToBankAccount)
-                .flatMap(bankAccountService::create)
-                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+            .map(bankAccountMapper::mapToBankAccount)
+            .flatMap(bankAccountService::create)
+            .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
     }
 
 
     @Override
-    public Mono<ResponseEntity<BankAccountResponse>> withdrawFromBankAccount(Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BankAccountResponse>> withdrawFromBankAccount(
+        Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
         return transactionRequest
-                .flatMap(bankAccountService::withdrawBankAccount)
-                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+            .flatMap(bankAccountService::withdrawBankAccount)
+            .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
     }
 
     @Override
-    public Mono<ResponseEntity<BankAccountResponse>> depositToBankAccount(Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BankAccountResponse>> depositToBankAccount(
+        Mono<TransactionRequest> transactionRequest, ServerWebExchange exchange) {
         return transactionRequest
-                .flatMap(bankAccountService::depositBankAccount)
-                .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
+            .flatMap(bankAccountService::depositBankAccount)
+            .map(bankAccount -> ResponseEntity.ok(bankAccountMapper.accountResponse(bankAccount)));
     }
 
     @Override
-    public Mono<ResponseEntity<InlineResponse200>> transferBetweenAccounts(Mono<TransferRequest> transferRequest, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<InlineResponse200>> transferBetweenAccounts(
+        Mono<TransferRequest> transferRequest, ServerWebExchange exchange) {
         return transferRequest
-                .flatMap(request -> bankAccountService.transferBetweenAccounts(Mono.just(request))
-                        .map(ResponseEntity::ok)
-                        .onErrorResume(e -> Mono.just(ResponseEntity.badRequest().body(new InlineResponse200().message(e.getMessage()))))
-                );
+            .flatMap(request -> bankAccountService.transferBetweenAccounts(Mono.just(request))
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> Mono.just(ResponseEntity.badRequest()
+                    .body(new InlineResponse200().message(e.getMessage()))))
+            );
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<BankAccountResponse>>> getBankAccountsByClientId(String id, ServerWebExchange exchange) {
-        Flux<BankAccountResponse> bankAccountResponses = bankAccountService.getBankAccountsByClientId(id)
+    public Mono<ResponseEntity<Flux<BankAccountResponse>>> getBankAccountsByClientId(
+        String id,
+        ServerWebExchange exchange) {
+        Flux<BankAccountResponse> bankAccountResponses =
+            bankAccountService.getBankAccountsByClientId(id)
                 .map(bankAccountMapper::mapToBankAccountResponse);
 
         return Mono.just(ResponseEntity.ok(bankAccountResponses));
@@ -75,11 +88,15 @@ public class MsBankAccountsApiDelegateImpl implements AccountsApiDelegate {
 
 
     @Override
-    public Mono<ResponseEntity<ReportCommissionResponse>> getCommissionReport(String startDate, String endDate, ServerWebExchange exchange) {
-        return bankAccountService.getCommissionReport(startDate,endDate)
-                .map(ResponseEntity::ok);
+    public Mono<ResponseEntity<ReportCommissionResponse>> getCommissionReport(
+        String startDate,
+        String endDate,
+        ServerWebExchange exchange) {
+        return bankAccountService.getCommissionReport(startDate, endDate)
+            .map(ResponseEntity::ok);
     }
 
 }
+
 
 

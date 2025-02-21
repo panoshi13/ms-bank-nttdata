@@ -13,7 +13,10 @@ import java.util.List;
 @Builder
 public class CreditCard {
     private double creditLimit;
+
     private double balanceUsed;
+
     private double availableBalance;
+
     private List<Charge> charges;
 }

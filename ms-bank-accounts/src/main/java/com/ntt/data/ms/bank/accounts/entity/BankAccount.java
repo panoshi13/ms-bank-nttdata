@@ -28,10 +28,13 @@ public class BankAccount {
     private ObjectId clientId;
 
     private Double balance;
+
     private Currency currency;
 
     @Field("opening_date")
     private LocalDateTime openingDate;
+
+    private Boolean status;
 
     @Field("maintenance")
     private Double maintenance;

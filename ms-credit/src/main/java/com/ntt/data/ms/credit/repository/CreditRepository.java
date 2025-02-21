@@ -10,5 +10,7 @@ import reactor.core.publisher.Mono;
 public interface CreditRepository extends ReactiveMongoRepository<Credit, String> {
 
     Mono<Long> countByClientIdAndType(ObjectId id, CreditType creditType);
+
     Flux<Credit> findByClientId(ObjectId clientId);
 }
+

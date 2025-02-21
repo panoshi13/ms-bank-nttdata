@@ -9,9 +9,14 @@ import reactor.core.publisher.Mono;
 
 public interface CreditService {
     Flux<Credit> getAll();
+
     Mono<Credit> create(Credit credit);
+
     Mono<Credit> paymentCredit(PaymentDTO paymentDTO);
+
     Mono<Credit> spendCredit(SpendDTO spendDTO);
+
     Mono<Credit> getCreditById(String id);
+
     Flux<Credit> getCreditByClient(ObjectId clientId);
 }

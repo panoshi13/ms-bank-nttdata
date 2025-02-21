@@ -9,3 +9,15 @@ server:
 api:
   client:
     url: http://localhost:8085
+
+
+resilience4j.circuitbreaker:
+  instances:
+    myService:
+      registerHealthIndicator: true
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 5
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3
+      slidingWindowType: COUNT_BASED

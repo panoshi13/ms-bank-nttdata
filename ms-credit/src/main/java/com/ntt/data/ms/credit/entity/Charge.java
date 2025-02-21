@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Charge {
     private String description;
+
     private double amount;
+
     private LocalDateTime date;
 }

@@ -16,7 +16,12 @@ import java.util.List;
 @NoArgsConstructor
 public class BankAccountDTO {
     private String id;
+
     private AccountType type;
+
     private Double balance;
+
+    private Boolean status;
+
     private List<Movement> movements;
 }
