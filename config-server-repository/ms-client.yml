@@ -1,6 +1,11 @@
 spring:
   application:
     name: ms-client
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: true # Habilita la funcionalidad de descubrimiento
   data:
     mongodb:
       uri: mongodb://localhost:27017/ms-customer
@@ -20,3 +25,12 @@ eureka:
     fetch-registry: true # Obtiene el registro de servicios de Eureka
   instance:
     prefer-ip-address: true # Utiliza la IP en lugar del hostname
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true

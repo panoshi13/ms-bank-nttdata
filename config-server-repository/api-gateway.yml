@@ -9,19 +9,19 @@ spring:
       routes:
         # Ruta 1: Redirigir solicitudes al servicio "ms-client" registrado en Eureka
         - id: ms-customer-service-route
-          uri: lb://CUSTOMER-COMMAND # lb:// indica que debe buscar el servicio en Eureka
+          uri: lb://ms-client # lb:// indica que debe buscar el servicio en Eureka
           predicates:
             - Path=/customers/** # Todas las rutas que empiecen con /customers
 
         # Ruta 2: Redirigir solicitudes al servicio "ms-credit" registrado en Eureka
         - id: ms-bank-account-service-route
-          uri: lb://ACCOUNT-COMMAND
+          uri: lb://ms-bank-accounts
           predicates:
             - Path=/accounts/**
 
         # Ruta 3: Redirigir solicitudes a un servicio externo
         - id: ms-credit-service-route
-          uri: lb://TRANSACTION-COMMAND
+          uri: lb://ms-credit
           predicates:
             - Path=/credits/**
 
