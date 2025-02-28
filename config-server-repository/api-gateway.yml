@@ -1,0 +1,47 @@
+server:
+  port: 8099 # Puerto donde correrá el API Gateway
+
+spring:
+  application:
+    name: api-gateway # Nombre de la aplicación
+  cloud:
+    gateway:
+      routes:
+        # Ruta 1: Redirigir solicitudes al servicio "ms-client" registrado en Eureka
+        - id: ms-customer-service-route
+          uri: lb://CUSTOMER-COMMAND # lb:// indica que debe buscar el servicio en Eureka
+          predicates:
+            - Path=/customers/** # Todas las rutas que empiecen con /customers
+
+        # Ruta 2: Redirigir solicitudes al servicio "ms-credit" registrado en Eureka
+        - id: ms-bank-account-service-route
+          uri: lb://ACCOUNT-COMMAND
+          predicates:
+            - Path=/accounts/**
+
+        # Ruta 3: Redirigir solicitudes a un servicio externo
+        - id: ms-credit-service-route
+          uri: lb://TRANSACTION-COMMAND
+          predicates:
+            - Path=/credits/**
+
+    discovery:
+      enabled: true # Habilita la funcionalidad de descubrimiento
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ # Dirección del servidor Eureka
+    register-with-eureka: true # Permite registrarse en Eureka
+    fetch-registry: true # Obtiene el registro de servicios de Eureka
+  instance:
+    prefer-ip-address: true # Utiliza la IP en lugar del hostname
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true

@@ -11,3 +11,12 @@ api:
     url: http://localhost:8085
   credit:
     url: http://localhost:8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ # Dirección del servidor Eureka
+    register-with-eureka: true # Permite registrarse en Eureka
+    fetch-registry: true # Obtiene el registro de servicios de Eureka
+  instance:
+    prefer-ip-address: true # Utiliza la IP en lugar del hostname
