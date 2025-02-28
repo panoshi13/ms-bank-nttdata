@@ -24,7 +24,6 @@ spring:
           uri: lb://ms-credit
           predicates:
             - Path=/credits/**
-
     discovery:
       enabled: true # Habilita la funcionalidad de descubrimiento
 
