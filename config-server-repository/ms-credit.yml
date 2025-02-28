@@ -30,3 +30,12 @@ resilience4j.circuitbreaker:
       waitDurationInOpenState: 2000
       permittedNumberOfCallsInHalfOpenState: 3
       slidingWindowType: COUNT_BASED
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info   # Habilita múltiples endpoints
+  endpoint:
+    refresh:
+      enabled: true

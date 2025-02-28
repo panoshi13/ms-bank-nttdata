@@ -5,10 +5,7 @@ import com.ntt.data.ms.bank.accounts.client.dto.ClientType;
 import com.ntt.data.ms.bank.accounts.client.dto.CreditDTO;
 import com.ntt.data.ms.bank.accounts.client.dto.ProfileType;
 import com.ntt.data.ms.bank.accounts.config.CustomException;
-import com.ntt.data.ms.bank.accounts.entity.AccountType;
-import com.ntt.data.ms.bank.accounts.entity.BankAccount;
-import com.ntt.data.ms.bank.accounts.entity.Holder;
-import com.ntt.data.ms.bank.accounts.entity.Movement;
+import com.ntt.data.ms.bank.accounts.entity.*;
 import com.ntt.data.ms.bank.accounts.model.*;
 import com.ntt.data.ms.bank.accounts.repository.BankAccountRepository;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
@@ -26,10 +23,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +40,6 @@ public class BankAccountServiceImpl implements BankAccountService {
 
 
     public BankAccountServiceImpl(BankAccountRepository bankAccountRepository,
-                                  WebClient.Builder webClientBuilder,
                                   @Qualifier("customerApiClient") WebClient customerApiClient,
                                   @Qualifier("creditApiClient") WebClient creditApiClient) {
         this.bankAccountRepository = bankAccountRepository;
@@ -68,6 +61,8 @@ public class BankAccountServiceImpl implements BankAccountService {
         return customerApiClient.get()
             .uri(uriBuilder -> uriBuilder.path("/customers/{id}").build(id)) // Path variable
             .retrieve()
+            .onStatus(httpStatus -> httpStatus.value() == 404,
+                clientResponse -> Mono.error(new CustomException("Cliente no encontrado")))
             .bodyToMono(ClientDTO.class);
     }
 
@@ -77,23 +72,24 @@ public class BankAccountServiceImpl implements BankAccountService {
             .switchIfEmpty(Mono.error(new CustomException("El cliente no existe")))
             .flatMap(client -> validateClientType(client, bankAccount))
             .flatMap(clientType -> validateClientAccounts(bankAccount, clientType))
-            .flatMap(bankAccount1 -> {
-                return fetchCreditByClientId(String.valueOf(bankAccount1.getClientId()))
+            .flatMap(
+                bankAccount1 -> fetchCreditByClientId(
+                    String.valueOf(bankAccount1.getClientId()))
                     .flatMap(creditDTOS -> {
                         boolean deudaVencida = hasOverdueDebt(creditDTOS);
                         if (deudaVencida) {
                             return Mono.error(new CustomException("Tiene deuda pendiente"));
                         }
                         return Mono.just(bankAccount1);
-                    });
-            })
+                    }))
             .flatMap(this::configureAccount)
             .flatMap(bankAccountRepository::save);
     }
 
     public Mono<List<CreditDTO>> fetchCreditByClientId(String productId) {
         return creditApiClient.get()
-            .uri("/credits/{id}/client", productId)
+            .uri(uriBuilder -> uriBuilder.path("/credits/{id}/client")
+                .build(productId)) // Path variable
             .retrieve()
             .onStatus(httpStatus -> httpStatus.value() == 400,
                 clientResponse -> Mono.error(new RuntimeException(
@@ -499,6 +495,63 @@ public class BankAccountServiceImpl implements BankAccountService {
                 reportCommissionResponse.commissionByProduct(commissionByProducts);
                 return Mono.just(reportCommissionResponse);
             });
+    }
+
+    @Override
+    public Mono<InlineResponse2001> createDebitCard(Mono<DebitCardRequest> debitCardRequest) {
+        return debitCardRequest
+            .flatMap(this::processDebitCardRequest)
+            .onErrorResume(CustomException.class,
+                e -> Mono.error(new CustomException("Cliente no encontrado")));
+    }
+
+    @Override
+    public Mono<InlineResponse2002> associateDebitCard(
+        Mono<DebitCardAssociationRequest> debitCardAssociationRequest) {
+        return debitCardAssociationRequest
+            .flatMap(this::processdebitCardAssociationRequest)
+            .onErrorResume(CustomException.class,
+                e -> Mono.error(new CustomException("Cliente no encontrado")));
+    }
+
+    private Mono<InlineResponse2002> processdebitCardAssociationRequest(
+        DebitCardAssociationRequest cardAssociationRequestMono) {
+        var customerId = cardAssociationRequestMono.getCustomerId();
+        var idDebitCard = cardAssociationRequestMono.getIdDebitCard();
+        var cardDestiny = cardAssociationRequestMono.getIdCard();
+        return getData(customerId)
+            .flatMap(clientDTO -> bankAccountRepository.findById(cardDestiny)
+                .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
+                //.filter(bankAccount -> bankAccount.getDebitCard().getId().equals(new ObjectId(idDebitCard)))
+                .flatMap(bankAccount -> {
+                    if (!Objects.equals(bankAccount.getClientId(), new ObjectId(customerId))) {
+                        return Mono.error(new CustomException("Cliente no coincide"));
+                    }
+
+                    if (bankAccount.getDebitCard() != null) {
+                        return Mono.error(new CustomException("La cuenta ya tiene una tarjeta de débito asociada"));
+                    }
+
+                    var debitCard = new DebitCard(new ObjectId(idDebitCard), LocalDateTime.now());
+                    bankAccount.setDebitCard(debitCard);
+                    return bankAccountRepository.save(bankAccount)
+                        .thenReturn(new InlineResponse2002().message(
+                            "Tarjeta de débito asociada a la cuenta: " + cardDestiny));
+                }));
+    }
+
+    private Mono<InlineResponse2001> processDebitCardRequest(DebitCardRequest debitCardRequest) {
+        var customerId = debitCardRequest.getCustomerId();
+        var cardDestiny = debitCardRequest.getIdCard();
+        return getData(customerId)
+            .flatMap(clientDTO -> bankAccountRepository.findById(cardDestiny)
+                .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
+                .flatMap(bankAccount -> {
+                    var debitCard = new DebitCard(new ObjectId(), LocalDateTime.now());
+                    bankAccount.setDebitCard(debitCard);
+                    return bankAccountRepository.save(bankAccount)
+                        .thenReturn(new InlineResponse2001().message("Tarjeta de débito creada"));
+                }));
     }
 
     private Map<String, Double> getCommissionByProductMap(List<BankAccount> bankAccounts,

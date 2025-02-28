@@ -1,10 +1,7 @@
 package com.ntt.data.ms.bank.accounts.service;
 
 import com.ntt.data.ms.bank.accounts.entity.BankAccount;
-import com.ntt.data.ms.bank.accounts.model.InlineResponse200;
-import com.ntt.data.ms.bank.accounts.model.ReportCommissionResponse;
-import com.ntt.data.ms.bank.accounts.model.TransactionRequest;
-import com.ntt.data.ms.bank.accounts.model.TransferRequest;
+import com.ntt.data.ms.bank.accounts.model.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,4 +25,8 @@ public interface BankAccountService {
     Mono<InlineResponse200> transferBetweenAccounts(Mono<TransferRequest> requestMono);
 
     Mono<ReportCommissionResponse> getCommissionReport(String startDate, String endDate);
+
+    Mono<InlineResponse2001> createDebitCard(Mono<DebitCardRequest> debitCardRequest);
+
+    Mono<InlineResponse2002> associateDebitCard(Mono<DebitCardAssociationRequest> debitCardAssociationRequest);
 }

@@ -23,6 +23,8 @@ public class BankAccount {
 
     private AccountType type;
 
+    private DebitCard debitCard;
+
     @Field("client_id")
     @JsonSerialize(using = ObjectIdSerializer.class)
     private ObjectId clientId;

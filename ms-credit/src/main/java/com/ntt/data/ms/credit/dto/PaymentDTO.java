@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 @Data
 public class PaymentDTO {
+    private String idClientSource;
+
     private String idCard;
 
     private double amount;

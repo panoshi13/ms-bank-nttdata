@@ -7,16 +7,24 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class WebClientConfig {
+    @Value("${api.client.url}")
+    private String clientUrl;
+
+    @Value("${api.credit.url}")
+    private String creditUrl;
 
     @Bean
-    public WebClient customerApiClient(WebClient.Builder webClientBuilder,
-                                       @Value("${api.client.url}") String bankUrl) {
-        return webClientBuilder.baseUrl(bankUrl).build();
+    public WebClient customerApiClient() {
+        return WebClient.builder()
+            .baseUrl(clientUrl)
+            .build();
     }
 
     @Bean
-    public WebClient creditApiClient(WebClient.Builder webClientBuilder,
-                                     @Value("${api.credit.url}") String creditUrl) {
-        return webClientBuilder.baseUrl(creditUrl).build();
+    public WebClient creditApiClient() {
+        return WebClient.builder()
+            .baseUrl(creditUrl)
+            .build();
     }
+
 }

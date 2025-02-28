@@ -108,7 +108,10 @@
 			<version>4.9.3</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>javax.validation</groupId>
 			<artifactId>validation-api</artifactId>
@@ -183,6 +186,14 @@
 				<configuration>
 					<excludes>
 						<exclude>com/ntt/data/ms/client/MsClientApplication.class</exclude>
+						<exclude>com/ntt/data/ms/client/client/**</exclude>
+						<exclude>com/ntt/data/ms/client/config/**</exclude>
+						<exclude>com/ntt/data/ms/client/entity/**</exclude>
+						<exclude>com/ntt/data/ms/client/model/**</exclude>
+						<exclude>com/ntt/data/ms/client/api/**</exclude>
+						<exclude>com/ntt/data/ms/client/dto/**</exclude>
+						<exclude>com/ntt/data/ms/client/repository/**</exclude>
+						<exclude>com/ntt/data/ms/client/mapper/**</exclude>
 					</excludes>
 				</configuration>
 				<!--Exclusiones para reporte de cobertura-->

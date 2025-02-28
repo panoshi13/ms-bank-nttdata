@@ -51,8 +51,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Mono<Customer> findById(String id) {
-        return customerRepository.findById(id)
-            .switchIfEmpty(Mono.error(new CustomException("No se encontraron resultados")));
+        return customerRepository.findById(id);
     }
 
     public Mono<CreditDTO> fetchCredit(String productId) {

@@ -211,8 +211,127 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReportCommissionResponse"
+  /accounts/bank/debit-card:
+    post:
+      summary: Crear una tarjeta de débito
+      operationId: createDebitCard
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebitCardRequest'
+      responses:
+        '200':
+          description: Tarjeta de débito creada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Creacion de tarjeta de debito exitoso
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Datos inválidos o incompletos
+        '404':
+          description: Cliente o cuenta no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cliente o cuenta no encontrada
+  /accounts/bank/debit-card/associate:
+    post:
+      summary: Asociar una tarjeta de débito a una cuenta bancaria
+      operationId: associateDebitCard
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebitCardAssociationRequest'
+      responses:
+        '200':
+          description: Tarjeta de débito asociada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tarjeta de débito asociada exitosamente
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorMessage:
+                    type: string
+                    example: Datos inválidos o incompletos
+        '404':
+          description: Cliente, tarjeta o cuenta no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorMessage:
+                    type: string
+                    example: Cliente no encontrado
 components:
   schemas:
+    DebitCardRequest:
+      type: object
+      properties:
+        customerId:
+          type: string
+          example: 60d5ec49f1e4e2a3d4f1e4e2
+          description: ID del cliente
+        idCard:
+          type: string
+          example: 60d5ec49f1e4e2a3d4f1e4e2
+          description: ID de la cuenta asociada
+      required:
+        - customerId
+        - idCard
+    DebitCardAssociationRequest:
+      type: object
+      properties:
+        customerId:
+          type: string
+          example: 67b603753bc3a372425b3d65
+          description: ID del cliente
+        idDebitCard:
+          type: string
+          example: 67b603753bc3a372425b3d65
+          description: ID de la tarjeta de débito
+        idCard:
+          type: string
+          example: 67b8f4fc6e24551a28bdf7f1
+          description: ID de la cuenta bancaria a asociar
+      required:
+        - customerId
+        - idDebitCard
+        - idCard
     ReportCommissionResponse:
       type: object
       properties:

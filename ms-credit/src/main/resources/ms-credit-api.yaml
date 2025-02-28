@@ -9,7 +9,7 @@ paths:
   /credits:
     get:
       summary: Obtener todos los créditos de clientes
-      operationId: getAllClients
+      operationId: getClients
       tags:
         - credits
       responses:
@@ -123,6 +123,50 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CreditResponse"
+  /credits/payments/third:
+    post:
+      summary: Realizar un pago a terceros mediante tarjeta de débito
+      operationId: payThirdPartyViaDebitCard
+      tags:
+        - credits
+      requestBody:
+        description: Datos del pago a terceros
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThirdPartyPaymentRequest'
+      responses:
+        '200':
+          description: Pago a terceros realizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Se hizo el pago correcto
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorMessage:
+                    type: string
+                    example: Datos inválidos o incompletos
+        '404':
+          description: Cliente, tarjeta o cuenta destino no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorMessage:
+                    type: string
+                    example: Cliente o cuenta no encontrada
 components:
   schemas:
     CreditResponse:
@@ -241,3 +285,28 @@ components:
                 type: number
                 format: double
                 example: 58.0
+    ThirdPartyPaymentRequest:
+      type: object
+      properties:
+        idCustomer:
+          type: string
+          example: 67b8f6e8cb84336c22cc6899
+          description: ID del cliente que realiza el pago
+        idDebitCard:
+          type: string
+          example: 67b8f6e8cb84336c22cc6899
+          description: ID de la tarjeta de débito utilizada
+        idCardDestiny:
+          type: string
+          example: 67b8f6e8cb84336c22cc6899
+          description: ID de la cuenta destino del pago
+        amount:
+          type: number
+          format: double
+          example: 1693.87
+          description: Monto del pago
+      required:
+        - idCustomer
+        - idDebitCard
+        - idCardDestiny
+        - amount

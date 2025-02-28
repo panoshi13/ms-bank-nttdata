@@ -73,6 +73,10 @@
 			<artifactId>spring-cloud-starter-config</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
@@ -118,16 +122,10 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
 				<version>3.2.1</version>
-				<dependencies>
-					<dependency>
-						<groupId>com.puppycrawl.tools</groupId>
-						<artifactId>checkstyle</artifactId>
-						<version>9.3</version>
-					</dependency>
-				</dependencies>
 				<executions>
 					<execution>
-						<phase>verify</phase>
+						<id>validate</id>
+						<phase>validate</phase>
 						<goals>
 							<goal>check</goal>
 						</goals>
@@ -135,7 +133,15 @@
 				</executions>
 				<configuration>
 					<configLocation>checkstyle.xml</configLocation>
+					<suppressionsLocation>suppressions.xml</suppressionsLocation>
 				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>9.3</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

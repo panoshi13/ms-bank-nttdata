@@ -96,6 +96,19 @@ public class MsBankAccountsApiDelegateImpl implements AccountsApiDelegate {
             .map(ResponseEntity::ok);
     }
 
+    @Override
+    public Mono<ResponseEntity<InlineResponse2001>> createDebitCard(
+        Mono<DebitCardRequest> debitCardRequest, ServerWebExchange exchange) {
+        return bankAccountService.createDebitCard(debitCardRequest)
+            .map(ResponseEntity::ok);
+    }
+
+    @Override
+    public Mono<ResponseEntity<InlineResponse2002>> associateDebitCard(
+        Mono<DebitCardAssociationRequest> debitCardAssociationRequest, ServerWebExchange exchange) {
+        return bankAccountService.associateDebitCard(debitCardAssociationRequest)
+            .map(ResponseEntity::ok);
+    }
 }
 
 

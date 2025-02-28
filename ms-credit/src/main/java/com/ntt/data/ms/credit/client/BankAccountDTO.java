@@ -1,7 +1,7 @@
-package com.ntt.data.ms.bank.accounts.entity;
+package com.ntt.data.ms.credit.client;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.ntt.data.ms.bank.accounts.config.ObjectIdSerializer;
+import com.ntt.data.ms.credit.config.ObjectIdSerializer;
 import lombok.Getter;
 import lombok.Setter;
 import org.bson.types.ObjectId;
@@ -15,15 +15,13 @@ import java.util.List;
 @Getter
 @Setter
 @Document(collection = "BankAccounts")
-public class BankAccount {
+public class BankAccountDTO {
 
     @Id
     @JsonSerialize(using = ObjectIdSerializer.class)
     private ObjectId id;
 
-    private AccountType type;
-
-    private DebitCard debitCard;
+    //private DebitCard debitCard;
 
     @Field("client_id")
     @JsonSerialize(using = ObjectIdSerializer.class)
@@ -31,7 +29,7 @@ public class BankAccount {
 
     private Double balance;
 
-    private Currency currency;
+    //private Currency currency;
 
     @Field("opening_date")
     private LocalDateTime openingDate;
@@ -47,6 +45,7 @@ public class BankAccount {
     @Field("day_withdrawal_deposit")
     private Integer dayWithdrawalDeposit;
 
+    /*
     @Field("movements")
     private List<Movement> movements;
 
@@ -55,4 +54,6 @@ public class BankAccount {
 
     @Field("authorized_signatories")
     private List<AuthorizedSignatories> authorizedSignatories;
+
+     */
 }
