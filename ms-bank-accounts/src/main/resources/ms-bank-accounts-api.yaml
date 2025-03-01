@@ -4,7 +4,7 @@ info:
   description: API para obtener información de cuentas bancarias
   version: 1.0.0
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080  # Nota: Cambiaré esto a 8099 más abajo si es necesario
 paths:
   /accounts/bank:
     get:
@@ -297,8 +297,73 @@ paths:
                   errorMessage:
                     type: string
                     example: Cliente no encontrado
+  # Nuevo endpoint agregado
+  /accounts/bank/transaction/debit-card:
+    post:
+      summary: Realizar una transacción con tarjeta de débito
+      operationId: performDebitCardTransaction
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebitCardTransactionRequest'
+      responses:
+        '200':
+          description: Transacción realizada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Transaccion realizada con exito
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Datos inválidos o incompletos
+        '404':
+          description: Cliente o tarjeta no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cliente o tarjeta no encontrada
 components:
   schemas:
+    # Esquema para el nuevo endpoint
+    DebitCardTransactionRequest:
+      type: object
+      properties:
+        customerId:
+          type: string
+          example: 67b602e73bc3a372425b3d64
+          description: ID del cliente
+        debitCard:
+          type: string
+          example: 67b602e73bc3a372425b3d62
+          description: ID de la tarjeta de débito
+        amount:
+          type: number
+          format: double
+          example: 200.00
+          description: Monto de la transacción
+      required:
+        - customerId
+        - debitCard
+        - amount
     DebitCardRequest:
       type: object
       properties:

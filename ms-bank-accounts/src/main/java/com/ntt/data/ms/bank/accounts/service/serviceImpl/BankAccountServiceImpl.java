@@ -305,7 +305,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                     bankAccount.setBalance(existLimit ?
                         (bankAccount.getBalance() + depositDTO.getAmount()) - comision :
                         bankAccount.getBalance() + depositDTO.getAmount());
-                    return getBankAccountMono(bankAccount, "deposit [+]", depositDTO);
+                    return getBankAccountMono(bankAccount, "deposit [+]", depositDTO.getAmount());
                 } catch (Exception e) {
                     log.error(e.getMessage());
                     return Mono.error(
@@ -315,8 +315,8 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     private Mono<BankAccount> getBankAccountMono(BankAccount bankAccount, String type,
-                                                 TransactionRequest depositDTO) {
-        if (bankAccount.getLimitMovements() <= 0) {
+                                                 double depositDTO) {
+        if (bankAccount.getLimitMovements() != null && bankAccount.getLimitMovements() <= 0) {
             type = type.concat(" - commission: 10.00");
         }
 
@@ -328,7 +328,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         Movement movement = Movement.builder()
             .type(type)
             .date(LocalDateTime.now())
-            .amount(depositDTO.getAmount())
+            .amount(depositDTO)
             .build();
         getMovements.add(movement);
 
@@ -375,7 +375,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 bankAccount.setBalance(
                     existLimit ? (bankAccount.getBalance() - depositDTO.getAmount()) - comision :
                         bankAccount.getBalance() - depositDTO.getAmount());
-                return getBankAccountMono(bankAccount, "withdraw [-]", depositDTO);
+                return getBankAccountMono(bankAccount, "withdraw [-]", depositDTO.getAmount());
             });
     }
 
@@ -509,12 +509,41 @@ public class BankAccountServiceImpl implements BankAccountService {
     public Mono<InlineResponse2002> associateDebitCard(
         Mono<DebitCardAssociationRequest> debitCardAssociationRequest) {
         return debitCardAssociationRequest
-            .flatMap(this::processdebitCardAssociationRequest)
+            .flatMap(this::processDebitCardAssociationRequest)
             .onErrorResume(CustomException.class,
                 e -> Mono.error(new CustomException("Cliente no encontrado")));
     }
 
-    private Mono<InlineResponse2002> processdebitCardAssociationRequest(
+    @Override
+    public Mono<InlineResponse2003> performDebitCardTransaction(
+        Mono<DebitCardTransactionRequest> debitCardTransactionRequest) {
+
+        return debitCardTransactionRequest
+            .flatMap(debitCardTransaction -> {
+                if (debitCardTransaction.getAmount() <= 0) {
+                    return Mono.error(new CustomException("El monto debe ser mayor a 0"));
+                }
+
+                return bankAccountRepository.findByClientId(new ObjectId(debitCardTransaction.getCustomerId()))
+                    .filter(bankAccount -> bankAccount.getDebitCard() != null &&
+                        bankAccount.getDebitCard().getId().equals(new ObjectId(debitCardTransaction.getDebitCard())))
+                    .sort(Comparator.comparing(bankAccount -> bankAccount.getDebitCard().getDate()))
+                    .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada o tarjeta de débito no coincide")))
+                    .flatMap(bankAccount -> {
+                        if (bankAccount.getBalance() >= debitCardTransaction.getAmount()) {
+                            bankAccount.setBalance(bankAccount.getBalance() - debitCardTransaction.getAmount());
+                            return getBankAccountMono(bankAccount, "Debit Card [-]", debitCardTransaction.getAmount())
+                                .thenReturn(new InlineResponse2003().message("Transacción realizada con éxito"));
+                        } else {
+                            return Mono.error(new CustomException("El monto excede el saldo disponible"));
+                        }
+                    })
+                    .next() // Toma el primer elemento que cumpla con la condición
+                    .switchIfEmpty(Mono.error(new CustomException("Saldo insuficiente en todas las cuentas")));
+            });
+    }
+
+    private Mono<InlineResponse2002> processDebitCardAssociationRequest(
         DebitCardAssociationRequest cardAssociationRequestMono) {
         var customerId = cardAssociationRequestMono.getCustomerId();
         var idDebitCard = cardAssociationRequestMono.getIdDebitCard();
@@ -522,14 +551,16 @@ public class BankAccountServiceImpl implements BankAccountService {
         return getData(customerId)
             .flatMap(clientDTO -> bankAccountRepository.findById(cardDestiny)
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
-                //.filter(bankAccount -> bankAccount.getDebitCard().getId().equals(new ObjectId(idDebitCard)))
+                //.filter(bankAccount -> bankAccount.getDebitCard()
+                // .getId().equals(new ObjectId(idDebitCard)))
                 .flatMap(bankAccount -> {
                     if (!Objects.equals(bankAccount.getClientId(), new ObjectId(customerId))) {
                         return Mono.error(new CustomException("Cliente no coincide"));
                     }
 
                     if (bankAccount.getDebitCard() != null) {
-                        return Mono.error(new CustomException("La cuenta ya tiene una tarjeta de débito asociada"));
+                        return Mono.error(new CustomException(
+                            "La cuenta ya tiene una tarjeta de débito asociada"));
                     }
 
                     var debitCard = new DebitCard(new ObjectId(idDebitCard), LocalDateTime.now());
