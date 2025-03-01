@@ -34,16 +34,16 @@ import java.util.stream.Collectors;
 public class CreditServiceImpl implements CreditService {
     private final CreditRepository creditRepository;
 
-    // private final WebClient bankAccountApiClient;
+    private final WebClient bankAccountApiClient;
 
     private final WebClient customerApiClient;
 
     public CreditServiceImpl(CreditRepository creditRepository,
-                             //@Qualifier("bankAccountApiClient") WebClient bankAccountApiClient,
+                             @Qualifier("bankAccountApiClient") WebClient bankAccountApiClient,
                              @Qualifier("customerApiClient") WebClient customerApiClient) {
         this.creditRepository = creditRepository;
         this.customerApiClient = customerApiClient;
-        //this.bankAccountApiClient = bankAccountApiClient;
+        this.bankAccountApiClient = bankAccountApiClient;
     }
 
     public Mono<ClientDTO> getDataClient(String id) {
@@ -295,10 +295,6 @@ public class CreditServiceImpl implements CreditService {
                         payments = new ArrayList<>();
                     }
 
-                    var paymentsMissing = payments.stream()
-                        .mapToDouble(Payment::getAmount)
-                        .sum();
-
                     Payment payment = new Payment();
                     payment.setAmount(request.getAmount());
                     payment.setDate(LocalDateTime.now());
@@ -325,6 +321,7 @@ public class CreditServiceImpl implements CreditService {
                     }
 
                     credit.setPayments(payments);
+
                     return creditRepository.save(credit)
                         .map(credit1 -> {
                             InlineResponse200 response = new InlineResponse200();

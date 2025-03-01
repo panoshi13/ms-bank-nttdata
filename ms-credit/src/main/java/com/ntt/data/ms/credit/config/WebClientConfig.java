@@ -12,11 +12,9 @@ public class WebClientConfig {
     @Value("${api.client.url}")
     private String clientUrl;
 
-    /*
+
     @Value("${api.bank.url}")
     private String bankUrl;
-
-     */
 
     @Bean
     @Qualifier("customerApiClient")
@@ -25,7 +23,7 @@ public class WebClientConfig {
             .baseUrl(clientUrl)
             .build();
     }
-    /*
+
     @Bean
     @Qualifier("bankAccountApiClient")
     public WebClient webClientBank() {
@@ -34,5 +32,4 @@ public class WebClientConfig {
             .build();
     }
 
-     */
 }

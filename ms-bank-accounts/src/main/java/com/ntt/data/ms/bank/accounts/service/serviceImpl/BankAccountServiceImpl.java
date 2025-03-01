@@ -524,22 +524,30 @@ public class BankAccountServiceImpl implements BankAccountService {
                     return Mono.error(new CustomException("El monto debe ser mayor a 0"));
                 }
 
-                return bankAccountRepository.findByClientId(new ObjectId(debitCardTransaction.getCustomerId()))
+                return bankAccountRepository.findByClientId(
+                        new ObjectId(debitCardTransaction.getCustomerId()))
                     .filter(bankAccount -> bankAccount.getDebitCard() != null &&
-                        bankAccount.getDebitCard().getId().equals(new ObjectId(debitCardTransaction.getDebitCard())))
+                        bankAccount.getDebitCard().getId()
+                            .equals(new ObjectId(debitCardTransaction.getDebitCard())))
                     .sort(Comparator.comparing(bankAccount -> bankAccount.getDebitCard().getDate()))
-                    .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada o tarjeta de débito no coincide")))
+                    .switchIfEmpty(Mono.error(new CustomException(
+                        "Cuenta no encontrada o tarjeta de débito no coincide")))
                     .flatMap(bankAccount -> {
                         if (bankAccount.getBalance() >= debitCardTransaction.getAmount()) {
-                            bankAccount.setBalance(bankAccount.getBalance() - debitCardTransaction.getAmount());
-                            return getBankAccountMono(bankAccount, "Debit Card [-]", debitCardTransaction.getAmount())
-                                .thenReturn(new InlineResponse2003().message("Transacción realizada con éxito"));
+                            bankAccount.setBalance(
+                                bankAccount.getBalance() - debitCardTransaction.getAmount());
+                            return getBankAccountMono(bankAccount, "Debit Card [-]",
+                                debitCardTransaction.getAmount())
+                                .thenReturn(new InlineResponse2003().message(
+                                    "Transacción realizada con éxito"));
                         } else {
-                            return Mono.error(new CustomException("El monto excede el saldo disponible"));
+                            return Mono.error(
+                                new CustomException("El monto excede el saldo disponible"));
                         }
                     })
                     .next() // Toma el primer elemento que cumpla con la condición
-                    .switchIfEmpty(Mono.error(new CustomException("Saldo insuficiente en todas las cuentas")));
+                    .switchIfEmpty(
+                        Mono.error(new CustomException("Saldo insuficiente en todas las cuentas")));
             });
     }
 
@@ -551,8 +559,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         return getData(customerId)
             .flatMap(clientDTO -> bankAccountRepository.findById(cardDestiny)
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
-                //.filter(bankAccount -> bankAccount.getDebitCard()
-                // .getId().equals(new ObjectId(idDebitCard)))
+                .filter(bankAccount -> bankAccount.getDebitCard().getId().equals(new ObjectId(idDebitCard)))
                 .flatMap(bankAccount -> {
                     if (!Objects.equals(bankAccount.getClientId(), new ObjectId(customerId))) {
                         return Mono.error(new CustomException("Cliente no coincide"));

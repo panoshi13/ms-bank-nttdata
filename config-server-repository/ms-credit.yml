@@ -9,6 +9,8 @@ server:
 api:
   client:
     url: http://localhost:8085
+  bank:
+    url: http://localhost:8080
 
 eureka:
   client:
