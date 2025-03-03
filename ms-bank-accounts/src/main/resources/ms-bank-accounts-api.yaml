@@ -297,6 +297,49 @@ paths:
                   errorMessage:
                     type: string
                     example: Cliente no encontrado
+  /accounts/bank/associate/wallet/debit-card:
+    post:
+      summary: Asociar Monedero virtual a tarjeta de debito
+      operationId: associateWalletToDebitCard
+      tags:
+        - accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DebitCardAssociateRequest'
+      responses:
+        '200':
+          description: Monedero asociado a la tarjeta de debito exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Monedero asociado a la tarjeta de debito exitosamente
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Datos inválidos o incompletos
+        '404':
+          description: Cliente o tarjeta no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cliente o tarjeta no encontrada
   # Nuevo endpoint agregado
   /accounts/bank/transaction/debit-card:
     post:
@@ -343,6 +386,25 @@ paths:
                     example: Cliente o tarjeta no encontrada
 components:
   schemas:
+    DebitCardAssociateRequest:
+      type: object
+      properties:
+        debitCardId:
+          type: string
+          example: 67b602e73bc3a372425b3d64
+          description: ID de la tarjeta de debito
+        documentNumber:
+          type: string
+          example: '76123198'
+          description: numero de documento
+        balance:
+          type: number
+          example: 100
+          description: saldo de la tarjeta de debito
+      required:
+        - debitCardId
+        - documentNumber
+        - balance
     # Esquema para el nuevo endpoint
     DebitCardTransactionRequest:
       type: object

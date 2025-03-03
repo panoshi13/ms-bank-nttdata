@@ -31,6 +31,9 @@ public interface BankAccountService {
     Mono<InlineResponse2002> associateDebitCard(
         Mono<DebitCardAssociationRequest> debitCardAssociationRequest);
 
-    Mono<InlineResponse2003> performDebitCardTransaction(
+    Mono<InlineResponse2004> performDebitCardTransaction(
         Mono<DebitCardTransactionRequest> debitCardTransactionRequest);
+
+    Mono<InlineResponse2003> associateWalletToDebitCard(
+        Mono<DebitCardAssociateRequest> walletAssociationRequest);
 }

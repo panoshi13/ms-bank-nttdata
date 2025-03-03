@@ -1,6 +1,8 @@
 package com.ntt.data.ms.credit.service.serviceImpl;
 
 import com.ntt.data.ms.credit.client.ClientDTO;
+import com.ntt.data.ms.credit.client.DebitCardAssociationDTO;
+import com.ntt.data.ms.credit.client.ResponseMessage;
 import com.ntt.data.ms.credit.config.CustomException;
 import com.ntt.data.ms.credit.dto.PaymentDTO;
 import com.ntt.data.ms.credit.dto.SpendDTO;
@@ -23,10 +25,7 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -39,8 +38,8 @@ public class CreditServiceImpl implements CreditService {
     private final WebClient customerApiClient;
 
     public CreditServiceImpl(CreditRepository creditRepository,
-                             @Qualifier("bankAccountApiClient") WebClient bankAccountApiClient,
-                             @Qualifier("customerApiClient") WebClient customerApiClient) {
+                             @Qualifier("webClientBank") WebClient bankAccountApiClient,
+                             @Qualifier("webClientCustomer") WebClient customerApiClient) {
         this.creditRepository = creditRepository;
         this.customerApiClient = customerApiClient;
         this.bankAccountApiClient = bankAccountApiClient;
@@ -53,12 +52,13 @@ public class CreditServiceImpl implements CreditService {
             .bodyToMono(ClientDTO.class); // Registrar el error;
     }
 
-    public Mono<ClientDTO> fetchBankAccountByClientId(String id) {
-        return customerApiClient.get()
-            .uri(uriBuilder -> uriBuilder.path("/accounts/bank/{id}/customer")
-                .build(id)) // Path variable
+    public Mono<ResponseMessage> performTransactionDebitCard(
+        DebitCardAssociationDTO debitCardAssociationDTO) {
+        return bankAccountApiClient.post()
+            .uri(uriBuilder -> uriBuilder.path("/accounts/bank/transaction/debit-card").build())
+            .bodyValue(debitCardAssociationDTO)
             .retrieve()
-            .bodyToMono(ClientDTO.class); // Registrar el error;
+            .bodyToMono(ResponseMessage.class);
     }
 
     public Mono<Error> fallback(Credit credit, Throwable t) {
@@ -277,59 +277,76 @@ public class CreditServiceImpl implements CreditService {
     public Mono<InlineResponse200> payThirdPartyViaDebitCard(
         Mono<ThirdPartyPaymentRequest> thirdPartyPaymentRequest) {
         return thirdPartyPaymentRequest
-            .flatMap(request -> creditRepository.findById(request.getIdCardDestiny())
-                .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
-                .flatMap(credit -> {
+            .flatMap(this::processThirdPartyPaymentRequest);
+    }
 
-                    if (!credit.getStatus())
-                        return Mono.error(
-                            new CustomException("El credito esta vacio o desactivado"));
+    private Mono<InlineResponse200> processThirdPartyPaymentRequest(
+        ThirdPartyPaymentRequest request) {
+        return creditRepository.findById(request.getIdCardDestiny())
+            .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
+            .flatMap(credit -> validateAndProcessCredit(request, credit));
+    }
 
-                    if (request.getAmount() <= 0) {
-                        return Mono.error(new CustomException("El monto debe ser mayor a 0"));
-                    }
+    private Mono<InlineResponse200> validateAndProcessCredit(ThirdPartyPaymentRequest request,
+                                                             Credit credit) {
+        if (!credit.getStatus()) {
+            return Mono.error(new CustomException("El crédito está vacío o desactivado"));
+        }
 
-                    List<Payment> payments = credit.getPayments();
+        if (request.getAmount() <= 0) {
+            return Mono.error(new CustomException("El monto debe ser mayor a 0"));
+        }
 
-                    if (payments == null) {
-                        payments = new ArrayList<>();
-                    }
-
-                    Payment payment = new Payment();
-                    payment.setAmount(request.getAmount());
-                    payment.setDate(LocalDateTime.now());
-                    payments.add(payment);
-
-                    payments = payments.stream()
-                        .sorted(Comparator.comparing(Payment::getDate).reversed())
-                        .collect(Collectors.toList());
-
-                    var paymentsMissingWithAmount = payments.stream()
-                        .mapToDouble(Payment::getAmount)
-                        .sum();
-
-                    if (paymentsMissingWithAmount > credit.getBalanceWithInterestRate()) {
-                        var needPay = credit.getBalanceWithInterestRate() - credit.getBalance();
-                        return Mono.error(
-                            new CustomException("Usted solo necesita pagar: "
-                                + aroundTwoDecimal(needPay)));
-                    }
-                    credit.setBalance(aroundTwoDecimal(paymentsMissingWithAmount));
-                    if (Objects.equals(credit.getBalance(),
-                        credit.getBalanceWithInterestRate())) {
-                        credit.setStatus(false);
-                    }
-
-                    credit.setPayments(payments);
-
-                    return creditRepository.save(credit)
-                        .map(credit1 -> {
-                            InlineResponse200 response = new InlineResponse200();
-                            response.setMessage("Pago realizado con éxito");
-                            return response;
-                        });
+        return processPayments(request, credit)
+            .flatMap(updatedCredit -> performTransactionDebitCard(request)
+                .then(creditRepository.save(updatedCredit))
+                .map(savedCredit -> {
+                    InlineResponse200 response = new InlineResponse200();
+                    response.setMessage("Pago realizado con éxito");
+                    return response;
                 }));
     }
+
+    private Mono<Credit> processPayments(ThirdPartyPaymentRequest request, Credit credit) {
+        List<Payment> payments =
+            Optional.ofNullable(credit.getPayments()).orElse(new ArrayList<>());
+
+        Payment payment = new Payment();
+        payment.setAmount(request.getAmount());
+        payment.setDate(LocalDateTime.now());
+        payments.add(payment);
+
+        List<Payment> sortedPayments = payments.stream()
+            .sorted(Comparator.comparing(Payment::getDate).reversed())
+            .collect(Collectors.toList());
+
+        double paymentsSum = sortedPayments.stream()
+            .mapToDouble(Payment::getAmount)
+            .sum();
+
+        if (paymentsSum > credit.getBalanceWithInterestRate()) {
+            double needPay = credit.getBalanceWithInterestRate() - credit.getBalance();
+            return Mono.error(
+                new CustomException("Usted solo necesita pagar: " + aroundTwoDecimal(needPay)));
+        }
+
+        credit.setBalance(aroundTwoDecimal(paymentsSum));
+        if (Objects.equals(credit.getBalance(), credit.getBalanceWithInterestRate())) {
+            credit.setStatus(false);
+        }
+
+        credit.setPayments(sortedPayments);
+        return Mono.just(credit);
+    }
+
+    private Mono<ResponseMessage> performTransactionDebitCard(ThirdPartyPaymentRequest request) {
+        DebitCardAssociationDTO debitCardAssociationDTO = new DebitCardAssociationDTO();
+        debitCardAssociationDTO.setAmount(request.getAmount());
+        debitCardAssociationDTO.setCustomerId(request.getIdCustomer());
+        debitCardAssociationDTO.setDebitCard(request.getIdDebitCard());
+        return performTransactionDebitCard(debitCardAssociationDTO);
+    }
+
 
     // Metodo auxiliar para guardar el crédito
     private Mono<Credit> saveCredit(Credit credit) {

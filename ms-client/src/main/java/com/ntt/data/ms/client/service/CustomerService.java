@@ -26,4 +26,6 @@ public interface CustomerService {
     Mono<MonthlyBalanceReportResponse> getMonthlyBalanceReport(String clientId);
 
     Mono<ConsolidatedSummaryResponse> getConsolidatedSummary(String clientId);
+
+    Mono<Customer> getCustomerByDocument(String document);
 }

@@ -54,6 +54,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomerResponse'
+  /customers/document/{document}:
+    get:
+      summary: Obtener un cliente por Documento
+      operationId: getCustomerByDocument
+      parameters:
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '76123198'
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          description: Cliente no encontrado
   /customers/{id}:
     get:
       summary: Obtener un cliente por ID

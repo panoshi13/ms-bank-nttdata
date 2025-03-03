@@ -92,4 +92,12 @@ public class MsClientApiDelegateImpl implements CustomersApiDelegate {
         return customerService.getConsolidatedSummary(customerId)
             .map(ResponseEntity::ok);
     }
+
+    @Override
+    public Mono<ResponseEntity<CustomerResponse>> getCustomerByDocument(
+        String document, ServerWebExchange exchange) {
+        return customerService.getCustomerByDocument(document)
+            .map(customer -> ResponseEntity.ok(clientMapper.mapToCustomerResponse(customer)))
+            .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
 }

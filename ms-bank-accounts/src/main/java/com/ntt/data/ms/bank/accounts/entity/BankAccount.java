@@ -23,7 +23,11 @@ public class BankAccount {
 
     private AccountType type;
 
+    @Field("debit_card")
     private DebitCard debitCard;
+
+    @Field("has_yanki")
+    private Boolean hasYanki;
 
     @Field("client_id")
     @JsonSerialize(using = ObjectIdSerializer.class)

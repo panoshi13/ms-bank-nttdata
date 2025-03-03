@@ -1,0 +1,9 @@
+server:
+  port: 9070
+
+spring:
+  application:
+    name: ms-user
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/ms-user

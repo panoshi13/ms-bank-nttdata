@@ -17,7 +17,6 @@ public class WebClientConfig {
     private String bankUrl;
 
     @Bean
-    @Qualifier("customerApiClient")
     public WebClient webClientCustomer() {
         return WebClient.builder()
             .baseUrl(clientUrl)
@@ -25,7 +24,6 @@ public class WebClientConfig {
     }
 
     @Bean
-    @Qualifier("bankAccountApiClient")
     public WebClient webClientBank() {
         return WebClient.builder()
             .baseUrl(bankUrl)

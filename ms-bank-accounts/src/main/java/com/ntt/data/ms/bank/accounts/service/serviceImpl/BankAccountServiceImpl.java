@@ -7,7 +7,9 @@ import com.ntt.data.ms.bank.accounts.client.dto.ProfileType;
 import com.ntt.data.ms.bank.accounts.config.CustomException;
 import com.ntt.data.ms.bank.accounts.entity.*;
 import com.ntt.data.ms.bank.accounts.model.*;
+import com.ntt.data.ms.bank.accounts.producer.BankAccountProducer;
 import com.ntt.data.ms.bank.accounts.repository.BankAccountRepository;
+import com.ntt.data.ms.bank.accounts.response.KafkaResponseService;
 import com.ntt.data.ms.bank.accounts.service.BankAccountService;
 import com.ntt.data.ms.bank.accounts.util.Util;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +20,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,19 +35,27 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class BankAccountServiceImpl implements BankAccountService {
+    private final KafkaResponseService kafkaResponseService;
+
     private final BankAccountRepository bankAccountRepository;
 
     private final WebClient creditApiClient;
 
     private final WebClient customerApiClient;
 
+    private final BankAccountProducer bankAccountProducer;
+
 
     public BankAccountServiceImpl(BankAccountRepository bankAccountRepository,
                                   @Qualifier("customerApiClient") WebClient customerApiClient,
-                                  @Qualifier("creditApiClient") WebClient creditApiClient) {
+                                  @Qualifier("creditApiClient") WebClient creditApiClient,
+                                  BankAccountProducer bankAccountProducer,
+                                  KafkaResponseService kafkaResponseService) {
         this.bankAccountRepository = bankAccountRepository;
         this.creditApiClient = creditApiClient;
         this.customerApiClient = customerApiClient;
+        this.bankAccountProducer = bankAccountProducer;
+        this.kafkaResponseService = kafkaResponseService;
     }
 
     @Override
@@ -60,6 +71,16 @@ public class BankAccountServiceImpl implements BankAccountService {
     public Mono<ClientDTO> getData(String id) {
         return customerApiClient.get()
             .uri(uriBuilder -> uriBuilder.path("/customers/{id}").build(id)) // Path variable
+            .retrieve()
+            .onStatus(httpStatus -> httpStatus.value() == 404,
+                clientResponse -> Mono.error(new CustomException("Cliente no encontrado")))
+            .bodyToMono(ClientDTO.class);
+    }
+
+    public Mono<ClientDTO> getClientByDocument(String document) {
+        return customerApiClient.get()
+            .uri(uriBuilder -> uriBuilder.path("/customers/document/{document}")
+                .build(document)) // Path variable
             .retrieve()
             .onStatus(httpStatus -> httpStatus.value() == 404,
                 clientResponse -> Mono.error(new CustomException("Cliente no encontrado")))
@@ -154,7 +175,6 @@ public class BankAccountServiceImpl implements BankAccountService {
                         return Mono.error(new CustomException(
                             "No tiene una tarjeta de crédito para crear su cuenta corriente"));
                     }
-                    log.info("Información de crédito: {}", creditDTOList);
                     return Mono.just(type);
                 });
         }
@@ -235,6 +255,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         bankAccount.setOpeningDate(LocalDateTime.now());
         bankAccount.setBalance(bankAccount.getBalance() != null ? bankAccount.getBalance() : 0.00);
         bankAccount.setStatus(true);
+        bankAccount.setHasYanki(false);
 
         switch (bankAccount.getType()) {
             case SAVINGS:
@@ -307,7 +328,6 @@ public class BankAccountServiceImpl implements BankAccountService {
                         bankAccount.getBalance() + depositDTO.getAmount());
                     return getBankAccountMono(bankAccount, "deposit [+]", depositDTO.getAmount());
                 } catch (Exception e) {
-                    log.error(e.getMessage());
                     return Mono.error(
                         new CustomException("Ocurrió un error al procesar el depósito"));
                 }
@@ -515,7 +535,7 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public Mono<InlineResponse2003> performDebitCardTransaction(
+    public Mono<InlineResponse2004> performDebitCardTransaction(
         Mono<DebitCardTransactionRequest> debitCardTransactionRequest) {
 
         return debitCardTransactionRequest
@@ -538,7 +558,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                                 bankAccount.getBalance() - debitCardTransaction.getAmount());
                             return getBankAccountMono(bankAccount, "Debit Card [-]",
                                 debitCardTransaction.getAmount())
-                                .thenReturn(new InlineResponse2003().message(
+                                .thenReturn(new InlineResponse2004().message(
                                     "Transacción realizada con éxito"));
                         } else {
                             return Mono.error(
@@ -551,6 +571,54 @@ public class BankAccountServiceImpl implements BankAccountService {
             });
     }
 
+    @Override
+    public Mono<InlineResponse2003> associateWalletToDebitCard(
+        Mono<DebitCardAssociateRequest> walletAssociationRequest) {
+
+        return walletAssociationRequest.flatMap(debitCardAssociateRequest ->
+            getClientByDocument(debitCardAssociateRequest.getDocumentNumber())
+                .switchIfEmpty(Mono.error(new CustomException("Cliente no encontrado")))
+                .flatMap(clientDTO ->
+                    bankAccountRepository.findByClientId(clientDTO.getId())
+                        .filter(bankAccount -> !bankAccount.getHasYanki() && bankAccount.getDebitCard() != null &&
+                            bankAccount.getDebitCard().getId()
+                                .equals(new ObjectId(debitCardAssociateRequest.getDebitCardId())))
+                        .sort(Comparator.comparing(
+                            bankAccount -> bankAccount.getDebitCard().getDate()))
+                        .next()
+                        .switchIfEmpty(Mono.error(new CustomException(
+                            "Cuenta no encontrada o tarjeta de débito no coincide o ya tiene monedero")))
+                        .flatMap(bankAccount -> {
+                            bankAccount.setHasYanki(true);
+                            debitCardAssociateRequest.setBalance(
+                                BigDecimal.valueOf(bankAccount.getBalance()));
+
+                            // Registrar la solicitud en espera
+                            CompletableFuture<String> futureResponse =
+                                kafkaResponseService.registerRequest(
+                                    debitCardAssociateRequest.getDebitCardId());
+
+                            return bankAccountRepository.save(bankAccount)
+                                .doOnSuccess(savedBankAccount ->
+                                    bankAccountProducer.sendMessage(debitCardAssociateRequest))
+                                .then(Mono.fromFuture(futureResponse))
+                                .map(response -> {
+                                    if (response.equals("REJECTED")) {
+                                        return new InlineResponse2003().message("Error en el monedero virtual: " +
+                                            response);
+                                    }
+                                    return new InlineResponse2003().message("Estado: " +
+                                        response);
+                                })
+                                .onErrorResume(error -> Mono.just(
+                                    new InlineResponse2003()
+                                        .message("Error en la operación: " + error.getMessage())));
+                        })
+                )
+        );
+    }
+
+
     private Mono<InlineResponse2002> processDebitCardAssociationRequest(
         DebitCardAssociationRequest cardAssociationRequestMono) {
         var customerId = cardAssociationRequestMono.getCustomerId();
@@ -559,7 +627,8 @@ public class BankAccountServiceImpl implements BankAccountService {
         return getData(customerId)
             .flatMap(clientDTO -> bankAccountRepository.findById(cardDestiny)
                 .switchIfEmpty(Mono.error(new CustomException("Cuenta no encontrada")))
-                .filter(bankAccount -> bankAccount.getDebitCard().getId().equals(new ObjectId(idDebitCard)))
+                .filter(bankAccount -> bankAccount.getDebitCard().getId()
+                    .equals(new ObjectId(idDebitCard)))
                 .flatMap(bankAccount -> {
                     if (!Objects.equals(bankAccount.getClientId(), new ObjectId(customerId))) {
                         return Mono.error(new CustomException("Cliente no coincide"));

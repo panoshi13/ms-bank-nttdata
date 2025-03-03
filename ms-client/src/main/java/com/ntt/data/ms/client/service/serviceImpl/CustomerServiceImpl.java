@@ -54,6 +54,11 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.findById(id);
     }
 
+    @Override
+    public Mono<Customer> getCustomerByDocument(String document) {
+        return customerRepository.findByIdentification(document).next();
+    }
+
     public Mono<CreditDTO> fetchCredit(String productId) {
         return creditApiClient.get()
             .uri("/credits/{id}", productId)
