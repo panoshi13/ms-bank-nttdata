@@ -26,6 +26,11 @@ spring:
             - Path=/credits/**
     discovery:
       enabled: true # Habilita la funcionalidad de descubrimiento
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwt-set-uri: http://localhost:8181/realms/nttbank/protocol/openid-connect/certs
 
 eureka:
   client:

@@ -21,4 +21,5 @@ public class KafkaConfirmationConsumer {
         // Completar la solicitud en espera
         responseService.completeRequest(messageId, status);
     }
+
 }

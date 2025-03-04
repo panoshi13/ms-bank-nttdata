@@ -5,6 +5,7 @@ import com.ntt.data.ms.bank.accounts.client.dto.ClientType;
 import com.ntt.data.ms.bank.accounts.client.dto.CreditDTO;
 import com.ntt.data.ms.bank.accounts.client.dto.ProfileType;
 import com.ntt.data.ms.bank.accounts.config.CustomException;
+import com.ntt.data.ms.bank.accounts.dto.UpdateYankiDTO;
 import com.ntt.data.ms.bank.accounts.entity.*;
 import com.ntt.data.ms.bank.accounts.model.*;
 import com.ntt.data.ms.bank.accounts.producer.BankAccountProducer;
@@ -556,6 +557,10 @@ public class BankAccountServiceImpl implements BankAccountService {
                         if (bankAccount.getBalance() >= debitCardTransaction.getAmount()) {
                             bankAccount.setBalance(
                                 bankAccount.getBalance() - debitCardTransaction.getAmount());
+                            // enviar datos para actualizar monedero
+                            bankAccountProducer.sendMessageUpdateYanki(
+                                new UpdateYankiDTO(debitCardTransaction.getDebitCard(),
+                                    bankAccount.getBalance()));
                             return getBankAccountMono(bankAccount, "Debit Card [-]",
                                 debitCardTransaction.getAmount())
                                 .thenReturn(new InlineResponse2004().message(
@@ -580,14 +585,15 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .switchIfEmpty(Mono.error(new CustomException("Cliente no encontrado")))
                 .flatMap(clientDTO ->
                     bankAccountRepository.findByClientId(clientDTO.getId())
-                        .filter(bankAccount -> !bankAccount.getHasYanki() && bankAccount.getDebitCard() != null &&
+                        .filter(bankAccount -> !bankAccount.getHasYanki() &&
+                            bankAccount.getDebitCard() != null &&
                             bankAccount.getDebitCard().getId()
                                 .equals(new ObjectId(debitCardAssociateRequest.getDebitCardId())))
                         .sort(Comparator.comparing(
                             bankAccount -> bankAccount.getDebitCard().getDate()))
                         .next()
                         .switchIfEmpty(Mono.error(new CustomException(
-                            "Cuenta no encontrada o tarjeta de débito no coincide o ya tiene monedero")))
+                            "Cuenta o tarjeta de débito no encontrada o ya tiene monedero")))
                         .flatMap(bankAccount -> {
                             bankAccount.setHasYanki(true);
                             debitCardAssociateRequest.setBalance(
@@ -604,8 +610,9 @@ public class BankAccountServiceImpl implements BankAccountService {
                                 .then(Mono.fromFuture(futureResponse))
                                 .map(response -> {
                                     if (response.equals("REJECTED")) {
-                                        return new InlineResponse2003().message("Error en el monedero virtual: " +
-                                            response);
+                                        return new InlineResponse2003().message(
+                                            "Error en el monedero virtual: " +
+                                                response);
                                     }
                                     return new InlineResponse2003().message("Estado: " +
                                         response);

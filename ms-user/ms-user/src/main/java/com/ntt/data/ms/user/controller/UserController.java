@@ -42,4 +42,13 @@ public class UserController {
         user.setId(new ObjectId(id));
         return userService.updateUser(user);
     }
+
+    @PostMapping("/yanki}")
+    public Completable yanki(@RequestParam String phoneNumberOrigin, @RequestParam String phoneNumberDestiny, @RequestParam double amount) {
+        return userService.yanki(phoneNumberOrigin,phoneNumberDestiny, amount)
+            .doOnComplete(() -> {
+                ResponseEntity.status(HttpStatus.OK)
+                    .body(Collections.singletonMap("message", "Yanki realizado exitosamente"));
+            });
+    }
 }

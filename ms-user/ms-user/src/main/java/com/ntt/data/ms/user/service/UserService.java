@@ -16,5 +16,7 @@ public interface UserService {
     Completable updateUser(User user);
 
     Maybe<User> findByDocumentNumber(String documentNumber);
+
+    Completable yanki(String phoneNumberOrigin, String phoneNumberDestiny, double amount);
 }
 
