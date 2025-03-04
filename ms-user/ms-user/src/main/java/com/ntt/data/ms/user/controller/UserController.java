@@ -43,7 +43,7 @@ public class UserController {
         return userService.updateUser(user);
     }
 
-    @PostMapping("/yanki}")
+    @PostMapping("/yanki")
     public Completable yanki(@RequestParam String phoneNumberOrigin, @RequestParam String phoneNumberDestiny, @RequestParam double amount) {
         return userService.yanki(phoneNumberOrigin,phoneNumberDestiny, amount)
             .doOnComplete(() -> {

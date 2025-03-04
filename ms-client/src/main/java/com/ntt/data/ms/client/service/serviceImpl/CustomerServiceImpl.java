@@ -10,6 +10,7 @@ import com.ntt.data.ms.client.repository.CustomerRepository;
 import com.ntt.data.ms.client.service.CustomerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -49,7 +50,9 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.save(customer);
     }
 
+
     @Override
+    @Cacheable(value = "customerID", key = "#id")
     public Mono<Customer> findById(String id) {
         return customerRepository.findById(id);
     }
@@ -99,7 +102,7 @@ public class CustomerServiceImpl implements CustomerService {
             .bodyToFlux(CreditDTO.class);
     }
 
-
+    @Cacheable("findAll")
     @Override
     public Flux<Customer> findAll() {
         return customerRepository.findAll();
